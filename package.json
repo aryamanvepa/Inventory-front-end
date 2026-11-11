@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test:db": "node tests/acceptance.test.mjs",
     "test:webhook": "node --experimental-strip-types tests/webhook-mapper.test.mjs",
-    "test": "npm run test:db && npm run test:webhook"
+    "test:storefront": "node --experimental-strip-types tests/storefront.test.mjs",
+    "test": "npm run test:db && npm run test:webhook && npm run test:storefront"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
