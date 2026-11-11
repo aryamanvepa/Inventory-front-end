@@ -2,7 +2,7 @@
 // installs to the home screen. Data always comes live from the database.
 // All paths are relative to the worker's scope, so it works at the site root
 // and under a GitHub Pages sub-path (/<repo>/).
-const CACHE = 'tl-ops-v2';
+const CACHE = 'tl-ops-v3';
 const scoped = (p) => new URL(p, self.registration.scope).href;
 
 self.addEventListener('install', (e) => {
@@ -17,7 +17,10 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return; // never cache API calls
   if (e.request.mode === 'navigate') {
-    e.respondWith(fetch(e.request).catch(() => caches.match(scoped('index.html'))));
+    // Always ask the server (GitHub Pages lets browsers reuse the page for
+    // 10 minutes, which would keep serving the previous version after a deploy)
+    e.respondWith(fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin' })
+      .catch(() => caches.match(scoped('index.html'))));
     return;
   }
   if (url.href.startsWith(scoped('assets/'))) {

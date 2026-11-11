@@ -18,6 +18,7 @@ import { Accounts, InvoiceView } from './screens/Accounts';
 import { Purchasing } from './screens/Purchasing';
 import { Production } from './screens/Production';
 import { Inventory } from './screens/Inventory';
+import { useUpdateAvailable } from './lib/update';
 
 export function App() {
   const [backend, setBackend] = useState<Backend | null>(null);
@@ -66,6 +67,7 @@ export function Brand() {
 function Shell() {
   const { route, can, backend } = useApp();
   const [a, b, c] = route;
+  const updateReady = useUpdateAvailable();
 
   let screen: ReactNode;
   switch (a) {
@@ -98,6 +100,7 @@ function Shell() {
   return (
     <div className="shell">
       {backend.mode === 'demo' && <div className="demo-banner">Demo mode · sample data in this browser only</div>}
+      {updateReady && <button type="button" className="update-banner" onClick={() => window.location.reload()}>A new version of the app is ready — tap here to update</button>}
       {screen}
       <nav className="tabbar" aria-label="Main">
         {tabs.map((t) => {

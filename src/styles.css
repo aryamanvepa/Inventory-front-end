@@ -375,3 +375,6 @@ a.alert { text-decoration: none; color: inherit; }
   .book-item { border-color: #ccc; }
   .book-title { font-size: 12pt; margin: 0 0 4mm; }
 }
+.update-banner { display: block; width: 100%; border: 0; background: var(--info); color: #fff; font: inherit; font-weight: 700;
+  padding: 12px 16px; cursor: pointer; text-align: center; position: sticky; top: 0; z-index: 30; }
+@media print { .update-banner { display: none !important; } }
