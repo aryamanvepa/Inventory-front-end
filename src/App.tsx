@@ -17,6 +17,7 @@ import { More } from './screens/More';
 import { Accounts, InvoiceView } from './screens/Accounts';
 import { Purchasing } from './screens/Purchasing';
 import { Production } from './screens/Production';
+import { Inventory } from './screens/Inventory';
 
 export function App() {
   const [backend, setBackend] = useState<Backend | null>(null);
@@ -76,7 +77,8 @@ function Shell() {
     case 'orders': screen = b ? <OrderDetail orderId={b} /> : <Orders />; break;
     case 'dashboard': screen = <Dashboard />; break;
     case 'admin': screen = <Admin section={b} />; break;
-    case 'labels': screen = <Labels />; break;
+    case 'labels': screen = <Labels key={route.join('/')} section={b} id={c} />; break;
+    case 'inventory': screen = <Inventory route={route.slice(1)} />; break;
     case 'more': screen = <More />; break;
     case 'accounts': screen = <Accounts section={b} />; break;
     case 'invoice': screen = <InvoiceView id={b} />; break;
@@ -89,7 +91,7 @@ function Shell() {
     { id: 'home', label: 'Home', icon: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z', show: true },
     { id: 'pack', label: 'Pack', icon: 'M4 8l8-4 8 4v8l-8 4-8-4zM4 8l8 4 8-4M12 12v8', show: can('packer', 'warehouse', 'manager') },
     { id: 'dispatch', label: 'Dispatch', icon: 'M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z', show: can('packer', 'warehouse', 'manager') },
-    { id: 'stock', label: 'Stock', icon: 'M4 5h16v4H4zM5 9v10h14V9M10 13h4', show: true },
+    { id: 'inventory', label: 'Stock', icon: 'M4 5h16v4H4zM5 9v10h14V9M10 13h4', show: true },
     { id: 'more', label: 'More', icon: 'M5 12h.01M12 12h.01M19 12h.01', show: true },
   ].filter((t) => t.show);
 
@@ -98,14 +100,17 @@ function Shell() {
       {backend.mode === 'demo' && <div className="demo-banner">Demo mode · sample data in this browser only</div>}
       {screen}
       <nav className="tabbar" aria-label="Main">
-        {tabs.map((t) => (
-          <a key={t.id} href={`#/${t.id}`} className={(a ?? 'home') === t.id ? 'on' : ''} aria-current={(a ?? 'home') === t.id ? 'page' : undefined}>
+        {tabs.map((t) => {
+          const on = t.id === 'inventory' ? ['inventory', 'stock', 'labels'].includes(a ?? '') : (a ?? 'home') === t.id;
+          return (
+          <a key={t.id} href={`#/${t.id}`} className={on ? 'on' : ''} aria-current={on ? 'page' : undefined}>
             <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
               <path d={t.icon} fill="none" stroke="currentColor" strokeWidth={t.id === 'more' ? 3.5 : 1.8} strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <span>{t.label}</span>
           </a>
-        ))}
+          );
+        })}
       </nav>
     </div>
   );

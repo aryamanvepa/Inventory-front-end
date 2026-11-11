@@ -4,9 +4,11 @@ import { Page } from '../components/ui';
 export function More() {
   const { can, profile, backend, refreshProfile } = useApp();
   const items = [
-    { href: 'receive', label: 'Receive stock', sub: 'Production, contract manufacturer or purchase', show: can('warehouse', 'manager') },
+    { href: 'inventory', label: 'Stock (simple)', sub: 'Stock in, stock out, count, find — big buttons, English / हिंदी', show: true },
+    { href: 'receive', label: 'Receive stock (detailed)', sub: 'Choose batch, manufacturer, location yourself', show: can('warehouse', 'manager') },
     { href: 'transfer', label: 'Transfer stock', sub: 'Between locations, consignment or outright', show: can('warehouse', 'manager') },
-    { href: 'labels', label: 'Print labels', sub: 'QR labels for batches and products', show: can('warehouse', 'manager') },
+    { href: 'labels', label: 'Barcode stickers', sub: 'Product and batch stickers, barcode book', show: can('warehouse', 'manager') },
+    { href: 'inventory/counts', label: 'Stock counts', sub: 'Approve counts that differ from the system', show: can('manager') },
     { href: 'production', label: 'Production', sub: 'Recipes, production runs, ingredients & packaging', show: can('manager', 'warehouse', 'accountant') },
     { href: 'purchasing', label: 'Purchasing', sub: 'Purchase orders, receiving, supplier bills & payments', show: can('manager', 'warehouse', 'accountant') },
     { href: 'accounts', label: 'Accounts', sub: 'MIS, P&L, balance sheet, GST, invoices, journals', show: can('manager', 'accountant', 'viewer') },

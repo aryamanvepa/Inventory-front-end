@@ -10,7 +10,7 @@ export function StockList() {
   const list = useRpc<any[]>('list_skus', { p_search: search || null }, []);
 
   return (
-    <Page title="Stock">
+    <Page title="Stock (detailed)" back="inventory">
       <Scanner placeholder="Scan or search a product" autoFocus={false} onScan={async (code) => {
         try {
           const r = await backend.rpc<any>('resolve_scan', { p_code: code });
@@ -73,7 +73,7 @@ export function SkuDetail({ skuId }: { skuId: string }) {
         <div className="row-gap wrap">
           <button type="button" className="btn" onClick={() => setSheet('adjust')}>Adjust count</button>
           <button type="button" className="btn" onClick={() => setSheet('status')}>Mark damaged / expired</button>
-          <a className="btn" href="#/labels">Print labels</a>
+          <a className="btn" href={`#/labels/item/${s.id}`}>Barcode stickers</a>
         </div>
       )}
 

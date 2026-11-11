@@ -34,4 +34,7 @@ const paid = Number((await one(`select sum(amount) s from payments where kind = 
 assert.equal(await bal('1130'), paid, 'past online payments posted to gateway clearing');
 assert.equal(await bal('1200'), -paid, 'shown as customer advances until invoiced');
 assert.equal((await one(`select count(*)::int n from accounting_exceptions`)).n, 0);
-console.log('  ✓ Backfill posts opening stock and past payments; books balance\n\n1 passed, 0 failed\n');
+// simple-inventory migration on existing data: every existing item gets a valid, unique barcode
+const bc = await one(`select count(*)::int n, count(distinct barcode)::int d, bool_and(is_valid_gtin(barcode) and barcode like '200%') ok from skus`);
+assert.ok(bc.n > 0 && bc.d === bc.n && bc.ok, 'existing items get barcodes');
+console.log('  ✓ Backfill posts opening stock and past payments; books balance; existing items get barcodes\n\n1 passed, 0 failed\n');

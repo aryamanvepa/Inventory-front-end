@@ -59,12 +59,13 @@ export function Home() {
 
       <h2 className="section">Quick actions</h2>
       <div className="actions-grid">
-        {can('warehouse', 'manager') && <a className="action" href="#/receive">Receive stock</a>}
-        <a className="action" href="#/stock">Look up stock</a>
+        <a className="action action-stock" href="#/inventory">Stock in · out · count</a>
+        <a className="action" href="#/inventory/find">Look up stock</a>
         {can('warehouse', 'manager') && <a className="action" href="#/transfer">Transfer stock</a>}
         {can('manager', 'viewer') && <a className="action" href="#/dashboard">Business dashboard</a>}
         {can('manager') && <a className="action" href="#/orders">All orders</a>}
-        {can('warehouse', 'manager') && <a className="action" href="#/labels">Print labels</a>}
+        {can('warehouse', 'manager') && <a className="action" href="#/labels">Barcode stickers</a>}
+        {can('warehouse', 'manager') && <a className="action" href="#/receive">Receive (detailed)</a>}
         {can('warehouse', 'manager') && <a className="action" href="#/production">Production</a>}
         {can('warehouse', 'manager', 'accountant') && <a className="action" href="#/purchasing">Purchasing</a>}
         {can('manager', 'accountant', 'viewer') && <a className="action" href="#/accounts">Accounts &amp; MIS</a>}

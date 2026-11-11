@@ -19,7 +19,7 @@ function hash(text: string): string {
   for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);
 }
-const DB_NAME = 'torte-living-demo-v2-' + hash(shim + Object.keys(migrations).sort().map((k) => migrations[k]).join('') + demoUsers + seed);
+const DB_NAME = 'torte-living-demo-v3-' + hash(shim + Object.keys(migrations).sort().map((k) => migrations[k]).join('') + demoUsers + seed);
 const DATA_DIR = 'idb://' + DB_NAME;
 const USER_KEY = 'tl-demo-user';
 
@@ -42,6 +42,10 @@ async function install(db: PGlite) {
   await db.transaction(async (tx) => {
     await tx.exec(shim);
     for (const path of Object.keys(migrations).sort()) await tx.exec(migrations[path]);
+    // A migration may switch deferred checks to immediate (see the ledger
+    // backfill); in one big transaction that would leak into the seed data,
+    // where a journal is checked before its lines exist.
+    await tx.exec('set constraints all deferred;');
     await tx.exec(demoUsers);
     await tx.exec(seed);
     await tx.exec('create table public.demo_installed (at timestamptz default now()); insert into public.demo_installed default values;');
