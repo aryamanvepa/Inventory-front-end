@@ -41,7 +41,11 @@ export function Login({ backend, onSignedIn }: { backend: Backend; onSignedIn():
     setBusy(true); setErr(null); setMsg(null);
     try {
       if (mode === 'in') { await backend.signIn(email.trim(), password); onSignedIn(); }
-      else { setMsg(await backend.signUp(email.trim(), password)); setMode('in'); }
+      else {
+        const m = await backend.signUp(email.trim(), password);
+        if (await backend.currentUser()) onSignedIn();   // no email confirmation required
+        else { setMsg(m); setMode('in'); }
+      }
     } catch (e2) { setErr(friendlyError(e2)); }
     finally { setBusy(false); }
   };

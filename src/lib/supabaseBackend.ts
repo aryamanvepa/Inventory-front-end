@@ -23,7 +23,10 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
       if (error) throw new Error(error.message);
     },
     async signUp(email, password) {
-      const { data, error } = await client.auth.signUp({ email, password });
+      // Confirmation email links back to this app (add its URL under Supabase → Auth → URL Configuration).
+      const { data, error } = await client.auth.signUp({
+        email, password, options: { emailRedirectTo: window.location.href.split('#')[0] },
+      });
       if (error) throw new Error(error.message);
       return data.session
         ? 'Login created. Ask the administrator to give you access.'
