@@ -1,0 +1,28 @@
+import { useApp } from '../lib/app';
+import { Page } from '../components/ui';
+
+export function More() {
+  const { can, profile, backend, refreshProfile } = useApp();
+  const items = [
+    { href: 'receive', label: 'Receive stock', sub: 'Production, contract manufacturer or purchase', show: can('warehouse', 'manager') },
+    { href: 'transfer', label: 'Transfer stock', sub: 'Between locations, consignment or outright', show: can('warehouse', 'manager') },
+    { href: 'labels', label: 'Print labels', sub: 'QR labels for batches and products', show: can('warehouse', 'manager') },
+    { href: 'orders', label: 'All orders', sub: 'Payments, cancellations, refunds', show: can('manager') },
+    { href: 'dashboard', label: 'Business dashboard', sub: 'Sales, margins, alerts, stock position', show: can('manager', 'viewer') },
+    { href: 'admin', label: 'Admin', sub: 'Products, partners, staff, website orders', show: can('manager') },
+  ].filter((i) => i.show);
+  return (
+    <Page title="More">
+      <ul className="menu">
+        {items.map((i) => <li key={i.href}><a href={`#/${i.href}`}><strong>{i.label}</strong><span>{i.sub}</span></a></li>)}
+      </ul>
+      <div className="card">
+        <div><strong>{profile.full_name}</strong></div>
+        <div className="muted small">Role: {profile.role}{backend.mode === 'demo' ? ' · demo mode' : ''}</div>
+        <button type="button" className="btn" onClick={async () => { await backend.signOut(); await refreshProfile(); }}>
+          {backend.mode === 'demo' ? 'Switch demo user' : 'Sign out'}
+        </button>
+      </div>
+    </Page>
+  );
+}

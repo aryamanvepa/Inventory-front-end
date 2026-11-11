@@ -1,0 +1,32 @@
+{
+  "name": "torte-living-os",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Torte Living Business Operating System - pilot (inventory & packing PWA on Supabase)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test:db": "node tests/acceptance.test.mjs",
+    "test:webhook": "node --experimental-strip-types tests/webhook-mapper.test.mjs",
+    "test": "npm run test:db && npm run test:webhook"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@supabase/supabase-js": "^2.119.0",
+    "barcode-detector": "^3.2.3",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zxing-wasm": "^3.1.6"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21"
+  }
+}
