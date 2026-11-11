@@ -37,6 +37,7 @@ export function Orders() {
 export function OrderDetail({ orderId }: { orderId: string }) {
   const { can, go } = useApp();
   const ord = useRpc<any>('get_order', { p_order_id: orderId });
+  const inv = useRpc<any>('invoice_for_order', { p_order_id: orderId });
   const { run, busy } = useAction();
   const [sheet, setSheet] = useState<null | 'cancel' | 'refund' | 'payment'>(null);
   const o = ord.data;
@@ -90,6 +91,8 @@ export function OrderDetail({ orderId }: { orderId: string }) {
         </>
       )}
 
+      {inv.data && <Card onClick={() => go(`invoice/${inv.data.id}`)}><div className="row-between"><span>GST invoice <strong className="mono">{inv.data.code}</strong></span><span>{inr(inv.data.total, 2)} →</span></div>
+        {inv.data.credit_notes.length > 0 && <div className="muted small">{inv.data.credit_notes.length} credit note(s)</div>}</Card>}
       <div className="row-gap wrap">
         {o.packable && can('packer', 'warehouse', 'manager') && <button type="button" className="btn btn-primary" onClick={() => go(`pack/${o.id}`)}>Pack</button>}
         {can('manager') && ['unpaid', 'cod_pending'].includes(o.payment_status) && o.status !== 'cancelled' && <button type="button" className="btn" onClick={() => setSheet('payment')}>Record payment</button>}

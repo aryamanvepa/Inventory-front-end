@@ -231,3 +231,14 @@ input:focus, select:focus, textarea:focus, .btn:focus-visible { outline: 2px sol
   @page { size: A4; margin: 8mm; }
 }
 .tbl .mono { white-space: nowrap; font-size: .82rem; }
+
+/* GST invoice */
+.invoice { background: #fff; color: #111; border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.invoice .tbl th, .invoice .tbl td { border-color: #ddd; color: #111; }
+.invoice .muted { color: #555; }
+.inv-head { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.inv-head h2 { font-size: 1.2rem; letter-spacing: .02em; text-transform: uppercase; }
+.invoice .tbl { font-size: .82rem; }
+@media (max-width: 560px) { .invoice .tbl { display: block; overflow-x: auto; } }
+@media print { .invoice { border: 0; padding: 0; } }
+a.alert { text-decoration: none; color: inherit; }

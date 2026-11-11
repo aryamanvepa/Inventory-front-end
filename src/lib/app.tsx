@@ -23,7 +23,7 @@ export function useApp(): AppCtx {
 }
 
 function parseHash(): string[] {
-  const h = window.location.hash.replace(/^#\/?/, '');
+  const h = window.location.hash.replace(/^#\/?/, '').split('?')[0];
   return h ? h.split('/').map(decodeURIComponent) : ['home'];
 }
 

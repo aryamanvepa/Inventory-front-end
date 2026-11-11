@@ -2,7 +2,7 @@
 //  * Supabase (production): authenticated calls to the database functions
 //  * Demo: the same SQL migrations running in the browser (PGlite),
 //    so the founder and staff can try every screen before Supabase is set up.
-export type Role = 'admin' | 'manager' | 'warehouse' | 'packer' | 'viewer';
+export type Role = 'admin' | 'manager' | 'warehouse' | 'packer' | 'viewer' | 'accountant';
 
 export interface Profile {
   user_id: string | null;

@@ -11,7 +11,9 @@
     "test:db": "node tests/acceptance.test.mjs",
     "test:webhook": "node --experimental-strip-types tests/webhook-mapper.test.mjs",
     "test:storefront": "node --experimental-strip-types tests/storefront.test.mjs",
-    "test": "npm run test:db && npm run test:webhook && npm run test:storefront"
+    "test": "npm run test:db && npm run test:webhook && npm run test:storefront && npm run test:finance && npm run test:upgrade",
+    "test:finance": "node tests/finance.test.mjs",
+    "test:upgrade": "node tests/upgrade-path.test.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",

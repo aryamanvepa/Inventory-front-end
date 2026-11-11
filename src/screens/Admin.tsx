@@ -246,11 +246,11 @@ function Staff() {
       <h2 className="section">Give someone access</h2>
       <Card>
         <p className="muted small">They first create a login on the sign-in screen with their email. Then add them here.
-          Roles: <b>packer</b> packs & dispatches · <b>warehouse</b> also receives & transfers stock · <b>manager</b> also adjusts stock, cancels and refunds · <b>viewer</b> sees the dashboard · <b>admin</b> everything incl. prices and staff.</p>
+          Roles: <b>packer</b> packs & dispatches · <b>warehouse</b> also receives & transfers stock · <b>manager</b> also adjusts stock, cancels and refunds · <b>accountant</b> invoices, bills, payments, journals and reports · <b>viewer</b> sees the dashboard and accounts · <b>admin</b> everything incl. prices, GST settings and staff.</p>
         {backend.mode === 'demo' && <p className="notice small">Demo mode has fixed demo users; this works once connected to Supabase.</p>}
         <Field label="Their login email"><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
         <Field label="Name"><input value={name} onChange={(e) => setName(e.target.value)} /></Field>
-        <Field label="Role"><select value={role} onChange={(e) => setRole(e.target.value)}>{['packer', 'warehouse', 'manager', 'viewer', 'admin'].map((r) => <option key={r}>{r}</option>)}</select></Field>
+        <Field label="Role"><select value={role} onChange={(e) => setRole(e.target.value)}>{['packer', 'warehouse', 'manager', 'accountant', 'viewer', 'admin'].map((r) => <option key={r}>{r}</option>)}</select></Field>
         <div className="row-gap">
           <button type="button" className="btn btn-primary grow" disabled={busy || !email || !name} onClick={async () => {
             if (await run('set_staff', { p_email: email, p_full_name: name, p_role: role, p_active: true }, 'Access saved')) { setEmail(''); setName(''); staff.reload(); }

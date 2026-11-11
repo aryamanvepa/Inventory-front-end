@@ -1,5 +1,9 @@
 import type { ReactNode } from 'react';
 
+// Local calendar date as YYYY-MM-DD (never via UTC — India is UTC+5:30)
+export const ymd = (d: Date = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 export const inr = (v: unknown, digits = 0) =>
   '₹' + Number(v ?? 0).toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 

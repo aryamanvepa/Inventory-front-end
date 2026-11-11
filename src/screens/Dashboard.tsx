@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { useRpc } from '../lib/app';
-import { ErrorBox, inr, label, Loading, Page, qty, Segmented, Stat } from '../components/ui';
+import { useApp, useRpc } from '../lib/app';
+import { MisView } from './Accounts';
+import { ErrorBox, inr, label, Loading, Page, qty, Segmented, Stat, ymd } from '../components/ui';
 
 export function Dashboard() {
   const [days, setDays] = useState('30');
   const d = useRpc<any>('get_dashboard', { p_days: Number(days) }, [days]);
   const data = d.data;
+  const { can } = useApp();
+  const showFinance = can('manager', 'viewer', 'accountant');
 
   return (
     <Page title="Business dashboard" back="more">
@@ -62,6 +65,12 @@ export function Dashboard() {
 
           <h2 className="section">Inventory ageing (our available stock)</h2>
           <HBars rows={data.inventory_ageing.map((a: any) => ({ name: a.bucket, value: Number(a.units) }))} format={(v) => `${qty(v)} units`} />
+          {showFinance && (
+            <>
+              <h2 className="section" style={{ marginTop: 24 }}>Finance (from the books) · <a className="link" href="#/accounts">open Accounts</a></h2>
+              <MisView from={ymd(new Date(Date.now() - (Number(days) - 1) * 86400000))} to={ymd()} />
+            </>
+          )}
         </>
       )}
     </Page>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAction, useApp, useRpc } from '../lib/app';
 import { friendlyError, newKey } from '../lib/backend';
 import { Scanner, feedback } from '../components/Scanner';
-import { Card, date, Field, Loading, Page, Segmented } from '../components/ui';
+import { Card, date, Field, Loading, Page, Segmented, ymd } from '../components/ui';
 
 type Step = 'product' | 'batch' | 'qty' | 'done';
 
@@ -17,7 +17,7 @@ export function Receive() {
   const [batches, setBatches] = useState<any[]>([]);
   const [batch, setBatch] = useState<any>(null);
   const [newBatch, setNewBatch] = useState(false);
-  const [mfg, setMfg] = useState(new Date().toISOString().slice(0, 10));
+  const [mfg, setMfg] = useState(ymd());
   const [exp, setExp] = useState('');
   const [maker, setMaker] = useState('');
   const [lot, setLot] = useState('');

@@ -65,6 +65,9 @@ export function Home() {
         {can('manager', 'viewer') && <a className="action" href="#/dashboard">Business dashboard</a>}
         {can('manager') && <a className="action" href="#/orders">All orders</a>}
         {can('warehouse', 'manager') && <a className="action" href="#/labels">Print labels</a>}
+        {can('warehouse', 'manager') && <a className="action" href="#/production">Production</a>}
+        {can('warehouse', 'manager', 'accountant') && <a className="action" href="#/purchasing">Purchasing</a>}
+        {can('manager', 'accountant', 'viewer') && <a className="action" href="#/accounts">Accounts &amp; MIS</a>}
       </div>
     </Page>
   );

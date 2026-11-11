@@ -14,6 +14,9 @@ import { Dashboard } from './screens/Dashboard';
 import { Admin } from './screens/Admin';
 import { Labels } from './screens/Labels';
 import { More } from './screens/More';
+import { Accounts, InvoiceView } from './screens/Accounts';
+import { Purchasing } from './screens/Purchasing';
+import { Production } from './screens/Production';
 
 export function App() {
   const [backend, setBackend] = useState<Backend | null>(null);
@@ -61,7 +64,7 @@ export function Brand() {
 
 function Shell() {
   const { route, can, backend } = useApp();
-  const [a, b] = route;
+  const [a, b, c] = route;
 
   let screen: ReactNode;
   switch (a) {
@@ -75,6 +78,10 @@ function Shell() {
     case 'admin': screen = <Admin section={b} />; break;
     case 'labels': screen = <Labels />; break;
     case 'more': screen = <More />; break;
+    case 'accounts': screen = <Accounts section={b} />; break;
+    case 'invoice': screen = <InvoiceView id={b} />; break;
+    case 'purchasing': screen = <Purchasing section={b} />; break;
+    case 'production': screen = <Production section={b} id={c} />; break;
     default: screen = <Home />;
   }
 
