@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useApp } from '../lib/app';
+import { scanOverrideSetting, setScanOverride } from '../components/Scanner';
 import { Page } from '../components/ui';
 
 export function More() {
@@ -23,6 +25,7 @@ export function More() {
       <ul className="menu">
         {items.map((i) => <li key={i.href}><a href={`#/${i.href}`}><strong>{i.label}</strong><span>{i.sub}</span></a></li>)}
       </ul>
+      {can('manager') && <TestingTools demo={backend.mode === 'demo'} />}
       <div className="card">
         <div><strong>{profile.full_name}</strong></div>
         <div className="muted small">Role: {profile.role}{backend.mode === 'demo' ? ' · demo mode' : ''}</div>
@@ -31,5 +34,22 @@ export function More() {
         </button>
       </div>
     </Page>
+  );
+}
+
+// Testing tools: only on this device, only for admins and managers to switch
+function TestingTools({ demo }: { demo: boolean }) {
+  const [on, setOn] = useState(() => scanOverrideSetting() ?? demo);
+  return (
+    <div className="card">
+      <strong>Testing tools</strong>
+      <label className="row-gap">
+        <input type="checkbox" checked={on} style={{ width: 'auto', minHeight: 0 }}
+          onChange={(e) => { setOn(e.target.checked); setScanOverride(e.target.checked); }} />
+        <span>Show the <strong>Scan override</strong> button on scan screens</span>
+      </label>
+      <span className="muted small">For trying the workflows without stickers, a camera or a scanner gun. It lets anyone "scan" any item,
+        so turn it off on phones used for real work. This setting is for this device only.</span>
+    </div>
   );
 }

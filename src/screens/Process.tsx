@@ -128,7 +128,8 @@ export function OrderBoard() {
   return (
     <Page title={t('orders')} actions={<LangButton lang={lang} setLang={setLang} />}>
       {can('manager', 'viewer') && <a className="link small" href="#/dashboard">{t('dashboard_link')}</a>}
-      <Scanner placeholder={t('scan_order')} autoFocus={false} onScan={async (code) => {
+      <Scanner placeholder={t('scan_order')} autoFocus={false}
+        hints={todo.map(({ o }) => ({ code: o.code, label: `${o.customer?.name ?? o.ship_to?.name ?? ''}` }))} onScan={async (code) => {
         try {
           const o = await backend.rpc<any>('find_order', { p_code: code });
           if (o) go(`work/${o.id}`); else toast(t('no_order', { code }), 'error');
@@ -447,7 +448,9 @@ function MakeStep({ line, more, ctx, t, back, onMade, onContinue, forOrder = tru
               );
             })}
           </ul>
-          {canMake && <Scanner onScan={onScan} placeholder={t('scan_title')} autoFocus={false} />}
+          {canMake && <Scanner onScan={onScan} placeholder={t('scan_title')} autoFocus={false}
+            hints={needs.flatMap((n) => (mats[n.material_sku_id]?.batches ?? []).filter((b) => b.id && !b.expired)
+              .map((b) => ({ code: b.code, label: `${n.name} · ${t('best_before')} ${date(b.expires_on)}` })))} />}
           {msg && <div className={`scan-result ${msg.ok ? 'ok' : 'bad'}`} role="status">{msg.text}</div>}
         </>
       )}

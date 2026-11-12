@@ -13,7 +13,8 @@ export function PackList() {
 
   return (
     <Page title="Pack orders">
-      <Scanner placeholder="Scan or type an order number" autoFocus={false} onScan={async (code) => {
+      <Scanner placeholder="Scan or type an order number" autoFocus={false}
+        hints={orders.map((o) => ({ code: o.code, label: o.customer_name ?? '' }))} onScan={async (code) => {
         try {
           const o = await backend.rpc<any>('find_order', { p_code: code });
           if (o) go(`pack/${o.id}`); else toast(`No order ${code}`, 'error');
@@ -218,7 +219,9 @@ export function PackPanel({ order: o, setOrder, t, onPacked }: { order: any; set
               <button type="button" className="btn btn-ghost btn-small" onClick={() => { setNeedBatch(null); setLast(null); }}>{t('go_back')}</button>
             </div>
           ) : null}
-          <Scanner onScan={(c) => scan(c)} busy={busy} placeholder={needBatch ? t('scan_batch_short') : t('scan_pack')} />
+          <Scanner onScan={(c) => scan(c)} busy={busy} placeholder={needBatch ? t('scan_batch_short') : t('scan_pack')}
+            hints={o.lines.filter((l: any) => Number(l.scanned) < Number(l.qty)).flatMap((l: any) => (shelf[l.sku_id] ?? [])
+              .filter((b) => b.id && !b.expired && !b.on_hold).map((b) => ({ code: b.code, label: `${l.sku_name} · ${date(b.expires_on)}` })))} />
           {last && <div className={`scan-result ${last.ok ? 'ok' : 'bad'}`} role="status">{last.text}</div>}
           <button type="button" className="btn btn-primary btn-big" disabled={!complete || acting}
             onClick={async () => {

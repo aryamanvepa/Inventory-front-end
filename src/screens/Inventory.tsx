@@ -190,6 +190,7 @@ export function Inventory({ route }: { route: string[] }) {
     return <Flow key={section + (id ?? '')} action={section} presetId={id} presetReason={extra} />;
   }
   if (section === 'counts') return <CountsReview />;
+  if (section === 'all') return <AllStock />;
   return <Hub />;
 }
 
@@ -218,6 +219,11 @@ function Hub() {
           </a>
         ))}
       </div>
+      <a className="big-tile bt-all" href="#/inventory/all">
+        <Icon d={ICONS.book} size={32} />
+        <span className="bt-word">{t('all_stock')}</span>
+        <span className="bt-hint">{t('all_stock_hint')}</span>
+      </a>
       {can('manager', 'viewer') && (
         <div className="stack">
           <a className="link" href="#/stock">{t('detailed')}</a>
@@ -519,6 +525,105 @@ function CountsReview() {
           <button type="button" className="btn btn-primary btn-big" disabled={busy || !note.trim()} onClick={() => review(rejecting, false, note.trim())}>Reject count</button>
         </Sheet>
       )}
+    </Page>
+  );
+}
+
+// ---------------------------------------------------------------------
+// All stock: every item in one list
+// ---------------------------------------------------------------------
+type StockRow = Item & {
+  brand_code: string | null; category: string | null; web_price: number | null; is_test: boolean; reserved: number;
+  expired: number; on_hold: number; packed: number; elsewhere: number; written_off: number; value: number;
+  last_cost: number | null; next_expiry: string | null;
+};
+type TypeFilter = 'all' | 'finished' | 'raw_material' | 'packaging';
+
+function AllStock() {
+  const { can, go } = useApp();
+  const { t, lang, setLang } = useT();
+  const list = useRpc<StockRow[]>('inv_stock_list');
+  const [type, setType] = useState<TypeFilter>('all');
+  const [brand, setBrand] = useState('');
+  const [low, setLow] = useState(false);
+  const [tests, setTests] = useState(false);
+  const [q, setQ] = useState('');
+  const showValue = can('manager', 'viewer', 'accountant');
+
+  const rows = (list.data ?? []).filter((r) => (type === 'all' || r.item_type === type) && (!brand || r.brand_code === brand)
+    && (!low || r.low) && (tests || !r.is_test)
+    && (!q.trim() || [r.name, r.code, r.category ?? '', r.barcode].some((x) => x.toLowerCase().includes(q.trim().toLowerCase()))));
+  const brands = [...new Map((list.data ?? []).filter((r) => r.brand_code).map((r) => [r.brand_code!, r.brand!])).entries()];
+  const total = rows.reduce((a, r) => a + Number(r.value), 0);
+
+  const csv = () => {
+    const head = ['Code', 'Name', 'Type', 'Brand', 'Category', 'Unit', 'On shelf', 'Kept for orders', 'Free', 'Packed', 'Other locations',
+      'Expired', 'On hold', 'Written off', 'Next expiry', 'Value at cost', 'MRP', 'Website price', 'Barcode'];
+    const esc = (v: unknown) => { const x = v == null ? '' : String(v); return /[",\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; };
+    const body = rows.map((r) => [r.code, r.name, r.item_type, r.brand, r.category, r.item_type === 'finished' ? 'packs' : r.unit, r.on_shelf, r.reserved,
+      r.free, r.packed, r.elsewhere, r.expired, r.on_hold, r.written_off, r.next_expiry, showValue ? r.value : '', r.mrp, r.web_price, r.barcode].map(esc).join(','));
+    const blob = new Blob([[head.join(','), ...body].join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `stock-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  return (
+    <Page title={t('all_stock_title')} back="inventory" actions={<LangButton lang={lang} setLang={setLang} />}>
+      <input className="search" type="search" placeholder={t('search')} value={q} onChange={(e) => setQ(e.target.value)} />
+      <Segmented value={type} onChange={setType} options={[{ value: 'all', label: t('f_all') }, { value: 'finished', label: t('finished') },
+        { value: 'raw_material', label: t('raw_material') }, { value: 'packaging', label: t('packaging') }]} />
+      <div className="chip-row">
+        {brands.map(([code, name]) => (
+          <button type="button" key={code} className={`chip-btn ${brand === code ? 'on' : ''}`} aria-pressed={brand === code}
+            onClick={() => setBrand(brand === code ? '' : code)}>{name}</button>
+        ))}
+        <button type="button" className={`chip-btn ${low ? 'on' : ''}`} aria-pressed={low} onClick={() => setLow(!low)}>{t('low_only')}</button>
+        <button type="button" className={`chip-btn ${tests ? 'on' : ''}`} aria-pressed={tests} onClick={() => setTests(!tests)}>{t('show_test')}</button>
+      </div>
+      {list.error && <ErrorBox text={list.error} onRetry={list.reload} />}
+      {!list.data && !list.error && <Loading text={t('loading')} />}
+      {list.data && (
+        <div className="row-between small">
+          <span className="muted">{t('items_n', { n: rows.length })}</span>
+          {showValue && <span>{t('value_at_cost')}: <strong>{inr(total)}</strong></span>}
+        </div>
+      )}
+      {list.data && rows.length === 0 && <Empty>{t('nothing_found')}</Empty>}
+      <div className="list">
+        {rows.map((r) => {
+          const unit = unitWord(t, r);
+          const finished = r.item_type === 'finished';
+          const main = finished ? r.free : r.on_shelf;
+          return (
+            <button type="button" key={r.id} className={`stock-row ${r.low ? 'low' : ''}`} onClick={() => go(`inventory/find/${r.id}`)}>
+              <Avatar item={r} />
+              <span className="grow">
+                <span className="stock-name">{r.is_test && <span className="test-tag">{t('test_item')}</span>} {r.name}</span>
+                <span className="muted small"><span className="mono">{r.code}</span>{r.brand ? ` · ${r.brand}` : ''}{r.category ? ` · ${r.category}` : ''}</span>
+                <span className="stock-chips small">
+                  {finished && <span>{qty(r.on_shelf)} {t('on_shelf')}</span>}
+                  {Number(r.reserved) > 0 && <span>{qty(r.reserved)} {t('promised')}</span>}
+                  {Number(r.packed) > 0 && <span>{qty(r.packed)} {t('packed_word')}</span>}
+                  {Number(r.elsewhere) > 0 && <span>{qty(r.elsewhere)} {t('elsewhere')}</span>}
+                  {Number(r.expired) > 0 && <span className="bad">{t('expired_n', { n: qty(r.expired) })}</span>}
+                  {Number(r.on_hold) > 0 && <span className="warn-text">{t('on_hold_n', { n: qty(r.on_hold) })}</span>}
+                  {Number(r.written_off) > 0 && <span className="muted">{qty(r.written_off)} {t('written_off')}</span>}
+                  {r.next_expiry && <span className="muted">{t('next_expiry', { date: date(r.next_expiry) })}</span>}
+                </span>
+              </span>
+              <span className="right">
+                <span className={`big-num ${r.low ? 'bad' : ''}`}>{qty(main)}</span>
+                <span className="muted small block">{unit} {finished ? t('free_to_sell') : t('on_shelf')}</span>
+                {showValue && Number(r.value) > 0 && <span className="small block">{inr(r.value)}</span>}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {showValue && list.data && <button type="button" className="btn" onClick={csv}>{t('download_csv')}</button>}
     </Page>
   );
 }

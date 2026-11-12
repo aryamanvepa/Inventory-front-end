@@ -431,3 +431,24 @@ a.alert { text-decoration: none; color: inherit; }
 .go-stickers { background: var(--warn); }
 .tick-link { margin-top: 4px; display: inline-block; }
 a.pick, a.order-card { text-decoration: none; color: inherit; }
+
+/* All stock + scan override */
+.bt-all { background: var(--surface); color: var(--ink); border-color: var(--line); min-height: 96px; }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font: inherit; font-size: .85rem; font-weight: 600;
+  padding: 6px 12px; border-radius: 99px; cursor: pointer; min-height: 36px; }
+.chip-btn.on { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.stock-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px 12px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line); color: inherit; font: inherit; cursor: pointer; }
+.stock-row.low { border-left: 5px solid var(--bad); }
+.stock-row .grow { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stock-name { font-weight: 700; line-height: 1.2; }
+.stock-chips { display: flex; flex-wrap: wrap; gap: 2px 10px; color: var(--ink-2); }
+.block { display: block; }
+.test-tag { display: inline-block; font-size: .68rem; font-weight: 800; letter-spacing: .05em; padding: 1px 6px; border-radius: 4px;
+  background: var(--warn); color: var(--surface); vertical-align: middle; }
+.scan-override { align-self: flex-start; border-style: dashed; border-color: var(--warn); color: var(--warn); margin-top: 6px; }
+.override-list { display: flex; flex-direction: column; gap: 6px; max-height: 40vh; overflow-y: auto; }
+.override-pick { display: flex; justify-content: space-between; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: inherit; font: inherit; cursor: pointer; }
+.override-sub { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 0 4px 12px; align-items: center; }

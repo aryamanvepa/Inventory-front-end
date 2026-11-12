@@ -9,6 +9,7 @@ import shim from '../../supabase/local-shim.sql?raw';
 import seed from '../../supabase/seed.sql?raw';
 import demoUsers from '../../supabase/demo-users.sql?raw';
 import demoExtras from '../../supabase/demo-extras.sql?raw';
+import catalogue from '../../supabase/data/2026-11-12_product_catalogue.sql?raw';
 
 const migrations = import.meta.glob('../../supabase/migrations/*.sql', {
   query: '?raw', import: 'default', eager: true,
@@ -20,7 +21,7 @@ function hash(text: string): string {
   for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);
 }
-const DB_NAME = 'torte-living-demo-v3-' + hash(shim + Object.keys(migrations).sort().map((k) => migrations[k]).join('') + demoUsers + seed + demoExtras);
+const DB_NAME = 'torte-living-demo-v3-' + hash(shim + Object.keys(migrations).sort().map((k) => migrations[k]).join('') + demoUsers + seed + demoExtras + catalogue);
 const DATA_DIR = 'idb://' + DB_NAME;
 const USER_KEY = 'tl-demo-user';
 
@@ -50,6 +51,8 @@ async function install(db: PGlite) {
     await tx.exec(demoUsers);
     await tx.exec(seed);
     await tx.exec(demoExtras);   // demo-only materials, recipes and orders to process
+    // the real product catalogue (its own begin/commit are dropped: this all runs in one transaction)
+    await tx.exec(catalogue.replace(/^\s*(begin|commit);\s*$/gim, ''));
     await tx.exec('create table public.demo_installed (at timestamptz default now()); insert into public.demo_installed default values;');
   });
 }

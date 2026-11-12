@@ -3,6 +3,80 @@
 //  2. Bluetooth / USB barcode scanner (acts as a keyboard and presses Enter)
 //  3. Typing the code by hand
 import { useEffect, useRef, useState } from 'react';
+import { useApp } from '../lib/app';
+import { useT } from '../lib/i18n';
+import { Loading, Sheet } from './ui';
+
+// ---------------------------------------------------------------------
+// Scan override (testing only): a button on every scan box that "scans"
+// a code picked from a list, so the workflows can be tried without labels,
+// a camera or a scanner gun. Off on the live site unless an admin or
+// manager turns it on for that device (More → Testing tools); on in demo.
+// ---------------------------------------------------------------------
+export type ScanHint = { code: string; label: string };
+const OVERRIDE_KEY = 'tl-scan-override';
+export function scanOverrideSetting(): boolean | null {
+  try { const v = localStorage.getItem(OVERRIDE_KEY); return v === null ? null : v === '1'; } catch { return null; }
+}
+export function setScanOverride(on: boolean) {
+  try { localStorage.setItem(OVERRIDE_KEY, on ? '1' : '0'); } catch { /* ignore */ }
+}
+export function useScanOverride(): boolean {
+  const { backend } = useApp();
+  const v = scanOverrideSetting();
+  return v ?? backend.mode === 'demo';
+}
+
+function ScanOverrideSheet({ hints, onPick, onClose }: { hints: ScanHint[]; onPick(code: string): void; onClose(): void }) {
+  const { backend } = useApp();
+  const { t } = useT();
+  const [items, setItems] = useState<any[] | null>(null);
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState<{ id: string; batches: any[] | null } | null>(null);
+  useEffect(() => { backend.rpc<any[]>('inv_items').then(setItems).catch(() => setItems([])); }, [backend]);
+  const expand = async (id: string) => {
+    if (open?.id === id) { setOpen(null); return; }
+    setOpen({ id, batches: null });
+    try { const d = await backend.rpc<any>('inv_item', { p_sku_id: id }); setOpen({ id, batches: d.batches }); } catch { setOpen({ id, batches: [] }); }
+  };
+  const shown = (items ?? []).filter((i) => !q.trim() || i.name.toLowerCase().includes(q.trim().toLowerCase()) || i.code.toLowerCase().includes(q.trim().toLowerCase()));
+  return (
+    <Sheet title={t('scan_override_title')} onClose={onClose}>
+      {hints.length > 0 && (
+        <>
+          <div className="field-label">{t('suggested')}</div>
+          <div className="override-list">
+            {hints.map((h) => <button type="button" key={h.code + h.label} className="override-pick" onClick={() => onPick(h.code)}>
+              <span>{h.label}</span><span className="mono small">{h.code}</span></button>)}
+          </div>
+        </>
+      )}
+      <div className="field-label">{t('all_items_barcodes')}</div>
+      <input className="search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('search')} />
+      {!items && <Loading />}
+      <div className="override-list">
+        {shown.map((i) => (
+          <div key={i.id} className="override-item">
+            <button type="button" className="override-pick" onClick={() => expand(i.id)}>
+              <span>{i.name}</span><span className="mono small">{i.code}</span>
+            </button>
+            {open?.id === i.id && (
+              <div className="override-sub">
+                <button type="button" className="btn btn-small" onClick={() => onPick(i.barcode)}>{t('product_barcode')} · <span className="mono">{i.barcode}</span></button>
+                {open?.batches === null ? <Loading /> : (open?.batches?.length ?? 0) > 0 && <span className="small muted">{t('choose_batch')}</span>}
+                {open?.batches?.filter((b: any) => b.id).map((b: any) => (
+                  <button type="button" key={b.id} className="btn btn-small" onClick={() => onPick(b.code)}>
+                    <span className="mono">{b.code}</span>&nbsp;· {Number(b.qty)}{b.expired ? ' · expired' : ''}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </Sheet>
+  );
+}
 
 type Detector = { detect(src: CanvasImageSource): Promise<{ rawValue: string }[]> };
 
@@ -27,9 +101,12 @@ async function makeDetector(): Promise<Detector> {
   return new BarcodeDetector({ formats: FORMATS as any });
 }
 
-export function Scanner({ onScan, placeholder = 'Scan or type a code', busy = false, autoFocus = true, cameraDefault = false }: {
-  onScan(code: string): void; placeholder?: string; busy?: boolean; autoFocus?: boolean; cameraDefault?: boolean;
+export function Scanner({ onScan, placeholder = 'Scan or type a code', busy = false, autoFocus = true, cameraDefault = false, hints = [] }: {
+  onScan(code: string): void; placeholder?: string; busy?: boolean; autoFocus?: boolean; cameraDefault?: boolean; hints?: ScanHint[];
 }) {
+  const overrideOn = useScanOverride();
+  const [override, setOverride] = useState(false);
+  const { t } = useT();
   const [text, setText] = useState('');
   const [camera, setCamera] = useState(cameraDefault);
   const [camError, setCamError] = useState<string | null>(null);
@@ -115,6 +192,12 @@ export function Scanner({ onScan, placeholder = 'Scan or type a code', busy = fa
         </button>
       </form>
       {camError && <p className="field-hint bad">{camError}</p>}
+      {overrideOn && (
+        <button type="button" className="btn btn-small scan-override" onClick={() => setOverride(true)}>
+          <span className="test-tag">TEST</span> {t('scan_override')}
+        </button>
+      )}
+      {override && <ScanOverrideSheet hints={hints} onClose={() => setOverride(false)} onPick={(code) => { setOverride(false); if (code) emit(code); }} />}
     </div>
   );
 }
