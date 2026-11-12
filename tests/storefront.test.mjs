@@ -66,7 +66,7 @@ await test('Catalogue: the publishable (anon) key can read it; prices come from 
 
 await test('Catalogue exposes no cost, batch, stock-level or internal fields', async () => {
   const allowed = ['code', 'name', 'product', 'brand', 'brand_code', 'category', 'pack_size', 'pack_unit', 'pack_grams',
-    'mrp', 'price', 'availability', 'only_left', 'max_qty'];
+    'mrp', 'price', 'availability', 'only_left', 'max_qty', 'details'];
   for (const s of await catalogue()) {
     for (const k of Object.keys(s)) assert.ok(allowed.includes(k), `unexpected field ${k}`);
   }

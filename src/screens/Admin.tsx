@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAction, useApp, useRpc } from '../lib/app';
-import { Badge, Card, dateTime, ErrorBox, Field, inr, Loading, Page, Segmented } from '../components/ui';
+import { Badge, Card, dateTime, ErrorBox, Field, inr, Loading, Page, Segmented, Sheet } from '../components/ui';
 
 type Section = 'website' | 'products' | 'partners' | 'staff';
 
@@ -114,6 +114,7 @@ function Products() {
   const [f, setF] = useState<Record<string, string>>({ pack_unit: 'g', is_batch_tracked: 'true' });
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
   const [price, setPrice] = useState<{ sku: any; value: string } | null>(null);
+  const [edit, setEdit] = useState<string | null>(null);
 
   if (!ref.data || !skus.data) return <Loading />;
   const existing = f.product_id && f.product_id !== 'new';
@@ -121,12 +122,15 @@ function Products() {
   return (
     <>
       <h2 className="section">Catalogue</h2>
+      <p className="muted small">Tap a product to edit it: shelf life, GST, category, reorder level, and the label information the website shows.</p>
+      {edit && <ProductEditor productId={edit} refData={ref.data} onClose={() => setEdit(null)} onSaved={() => skus.reload()} />}
       <table className="tbl">
         <thead><tr><th>SKU</th><th className="num">MRP</th><th className="num">Web</th><th className="num">Free</th></tr></thead>
         <tbody>
           {skus.data.map((s) => (
             <tr key={s.id}>
-              <td><span className="mono">{s.code}</span> {s.name}<div className="muted small">{s.brand} · {s.hsn ? `HSN ${s.hsn} · ${s.gst_rate}%` : 'no tax rate'}{s.gtins.length ? ` · GTIN ${s.gtins.join(', ')}` : ''}</div></td>
+              <td><button type="button" className="link" onClick={() => setEdit(s.product_id)}><span className="mono">{s.code}</span> {s.name}</button>
+                <div className="muted small">{s.brand} · {s.hsn ? `HSN ${s.hsn} · ${s.gst_rate}%` : 'no tax rate'}{s.shelf_life_days ? ` · ${s.shelf_life_days} d shelf life` : ' · no shelf life'}{s.gtins.length ? ` · GTIN ${s.gtins.join(', ')}` : ''}</div></td>
               <td className="num">{inr(s.mrp)}</td>
               <td className="num">{can('admin') ? <button type="button" className="link" onClick={() => setPrice({ sku: s, value: String(s.web_price ?? '') })}>{s.web_price != null ? inr(s.web_price) : 'set'}</button> : inr(s.web_price)}</td>
               <td className="num">{s.atp}</td>
@@ -261,5 +265,105 @@ function Staff() {
         </div>
       </Card>
     </>
+  );
+}
+
+const NUTRIENTS: [string, string][] = [['energy_kcal', 'Energy (kcal)'], ['protein_g', 'Protein (g)'], ['carbohydrate_g', 'Carbohydrate (g)'],
+  ['total_sugars_g', 'Total sugars (g)'], ['added_sugars_g', 'Added sugars (g)'], ['fat_g', 'Total fat (g)'], ['saturated_fat_g', 'Saturated fat (g)'],
+  ['trans_fat_g', 'Trans fat (g)'], ['fibre_g', 'Dietary fibre (g)'], ['sodium_mg', 'Sodium (mg)'], ['cholesterol_mg', 'Cholesterol (mg)']];
+
+// Edit a product and its packs, including the label information shown on the website
+function ProductEditor({ productId, refData, onClose, onSaved }: { productId: string; refData: any; onClose(): void; onSaved(): void }) {
+  const { backend, can, toast } = useApp();
+  const { run, busy } = useAction();
+  const [d, setD] = useState<any>(null);
+  const [f, setF] = useState<Record<string, any>>({});
+  const [packs, setPacks] = useState<Record<string, any>>({});
+  useEffect(() => {
+    backend.rpc<any>('get_product_details', { p_product_id: productId }).then((x) => {
+      setD(x);
+      setF({ name: x.name, brand_id: x.brand_id ?? '', category_id: x.category_id ?? '', tax_rate_id: x.tax_rate_id ?? '',
+        shelf_life_days: x.shelf_life_days ?? '', active: x.active, description: x.description ?? '', ingredients: x.ingredients ?? '',
+        allergens: x.allergens ?? '', diet: x.diet ?? '', storage: x.storage ?? '', nutrition: x.nutrition ?? {} });
+      setPacks(Object.fromEntries(x.skus.map((s: any) => [s.id, { name: s.name, reorder_level: s.reorder_level, weight_grams: s.weight_grams ?? '', active: s.active, mrp: s.mrp ?? '' }])));
+    }).catch((e) => toast(String(e.message ?? e), 'error'));
+  }, [productId, backend, toast]);
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
+
+  const save = async (confirm?: boolean) => {
+    const p: Record<string, unknown> = { ...f, shelf_life_days: f.shelf_life_days === '' ? null : Number(f.shelf_life_days) };
+    if (d.item_type !== 'finished' || d.has_history) delete p.brand_id;
+    if (confirm !== undefined) p.content_confirmed = confirm;
+    const r = await run<any>('update_product', { p_product_id: productId, p }, confirm ? 'Label information confirmed' : 'Product saved');
+    if (!r) return;
+    for (const s of d.skus) {
+      const pk = packs[s.id];
+      const changed: Record<string, unknown> = {};
+      for (const k of ['name', 'reorder_level', 'weight_grams', 'active']) if (String(pk[k]) !== String(s[k] ?? '')) changed[k] = pk[k];
+      if (can('admin') && String(pk.mrp) !== String(s.mrp ?? '')) changed.mrp = pk.mrp;
+      if (Object.keys(changed).length && !(await run('update_sku', { p_sku_id: s.id, p: changed }))) return;
+    }
+    setD(await backend.rpc<any>('get_product_details', { p_product_id: productId }));
+    onSaved();
+  };
+
+  return (
+    <Sheet title={d ? d.name : 'Product'} onClose={onClose}>
+      {!d ? <Loading /> : (
+        <div className="stack">
+          <div className="row-gap small">
+            {d.content_confirmed ? <Badge status="available">Label info confirmed {dateTime(d.content_confirmed_at)}</Badge> : <Badge status="pending">Label info not confirmed — website shows it as a draft</Badge>}
+          </div>
+          <Field label="Product name"><input value={f.name} onChange={set('name')} /></Field>
+          {d.item_type === 'finished' && (
+            <Field label="Brand" hint={d.has_history ? 'Fixed: this product already has orders or stock' : undefined}>
+              <select value={f.brand_id} onChange={set('brand_id')} disabled={d.has_history}>{refData.brands.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
+            </Field>
+          )}
+          <div className="row-gap">
+            <Field label="Category"><select value={f.category_id} onChange={set('category_id')}><option value="">—</option>{refData.categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+            <Field label="Shelf life (days)"><input inputMode="numeric" value={f.shelf_life_days} onChange={(e) => setF({ ...f, shelf_life_days: e.target.value.replace(/\D/g, '') })} /></Field>
+          </div>
+          <Field label="HSN / GST" hint="Confirm with your CA"><select value={f.tax_rate_id} onChange={set('tax_rate_id')}><option value="">—</option>{refData.tax_rates.map((t: any) => <option key={t.id} value={t.id}>{t.hsn_code} · {t.gst_rate}% · {t.description}</option>)}</select></Field>
+          <label className="row-gap"><input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} style={{ width: 'auto', minHeight: 0 }} /> Active (off = hidden from the website and stock screens)</label>
+
+          <h3 className="group-title">Label information (shown on the website)</h3>
+          <Field label="Description"><textarea rows={3} value={f.description} onChange={set('description')} /></Field>
+          <Field label="Ingredients" hint="As printed on the pack, in descending order"><textarea rows={3} value={f.ingredients} onChange={set('ingredients')} /></Field>
+          <Field label="Allergens" hint="e.g. Contains nuts, gluten. May contain sesame."><input value={f.allergens} onChange={set('allergens')} /></Field>
+          <div className="row-gap">
+            <Field label="Veg mark"><select value={f.diet} onChange={set('diet')}><option value="">—</option><option value="veg">Veg</option><option value="vegan">Vegan</option><option value="egg">Contains egg</option><option value="non_veg">Non-veg</option></select></Field>
+            <Field label="Storage"><input value={f.storage} onChange={set('storage')} placeholder="Store in a cool, dry place" /></Field>
+          </div>
+          <Field label="Nutrition per 100 g" hint="Leave blank what you don't have">
+            <div className="nutri-grid">
+              {NUTRIENTS.map(([k, label]) => (
+                <label key={k} className="small">{label}
+                  <input inputMode="decimal" value={f.nutrition?.[k] ?? ''} onChange={(e) => setF({ ...f, nutrition: { ...f.nutrition, [k]: e.target.value.replace(/[^\d.]/g, '') } })} />
+                </label>
+              ))}
+            </div>
+          </Field>
+
+          <h3 className="group-title">Packs</h3>
+          {d.skus.map((s: any) => (
+            <Card key={s.id}>
+              <div className="row-between small"><span className="mono">{s.code}</span><span className="muted">Web {s.web_price != null ? inr(s.web_price) : '—'}{s.strategic_price != null ? ` · strategic ${inr(s.strategic_price)}` : ''}</span></div>
+              <Field label="Pack name"><input value={packs[s.id].name} onChange={(e) => setPacks({ ...packs, [s.id]: { ...packs[s.id], name: e.target.value } })} /></Field>
+              <div className="row-gap">
+                <Field label="Reorder level"><input inputMode="numeric" value={packs[s.id].reorder_level} onChange={(e) => setPacks({ ...packs, [s.id]: { ...packs[s.id], reorder_level: e.target.value.replace(/\D/g, '') } })} /></Field>
+                <Field label="MRP ₹" hint={can('admin') ? undefined : 'Admin only'}><input inputMode="decimal" disabled={!can('admin')} value={packs[s.id].mrp} onChange={(e) => setPacks({ ...packs, [s.id]: { ...packs[s.id], mrp: e.target.value.replace(/[^\d.]/g, '') } })} /></Field>
+              </div>
+              <label className="row-gap small"><input type="checkbox" checked={packs[s.id].active} onChange={(e) => setPacks({ ...packs, [s.id]: { ...packs[s.id], active: e.target.checked } })} style={{ width: 'auto', minHeight: 0 }} /> Active</label>
+            </Card>
+          ))}
+
+          <button type="button" className="btn btn-primary btn-big" disabled={busy} onClick={() => save()}>Save</button>
+          {d.item_type === 'finished' && (d.content_confirmed
+            ? <button type="button" className="btn" disabled={busy} onClick={() => save(false)}>Mark label info as not confirmed</button>
+            : <button type="button" className="btn" disabled={busy} onClick={() => save(true)}>Save and confirm label information</button>)}
+        </div>
+      )}
+    </Sheet>
   );
 }
