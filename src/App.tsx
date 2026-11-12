@@ -18,7 +18,9 @@ import { Accounts, InvoiceView } from './screens/Accounts';
 import { Purchasing } from './screens/Purchasing';
 import { Production } from './screens/Production';
 import { Inventory } from './screens/Inventory';
+import { MakeBoard, MakeForStock, OrderBoard, ProcessOrder } from './screens/Process';
 import { useUpdateAvailable } from './lib/update';
+import { useT } from './lib/i18n';
 
 export function App() {
   const [backend, setBackend] = useState<Backend | null>(null);
@@ -28,9 +30,10 @@ export function App() {
 
   const refresh = useCallback(async (b: Backend) => {
     const user = await b.currentUser();
+    // load the role before deciding what to show, so a slow start never flashes "Waiting for access"
+    const prof = user ? await b.rpc<Profile>('get_my_profile') : null;
+    setProfile(prof);
     setSignedIn(!!user);
-    if (user) setProfile(await b.rpc<Profile>('get_my_profile'));
-    else setProfile(null);
   }, []);
 
   useEffect(() => {
@@ -65,9 +68,10 @@ export function Brand() {
 }
 
 function Shell() {
-  const { route, can, backend } = useApp();
+  const { route, backend } = useApp();
   const [a, b, c] = route;
   const updateReady = useUpdateAvailable();
+  const { t } = useT();
 
   let screen: ReactNode;
   switch (a) {
@@ -82,19 +86,22 @@ function Shell() {
     case 'labels': screen = <Labels key={route.join('/')} section={b} id={c} />; break;
     case 'inventory': screen = <Inventory route={route.slice(1)} />; break;
     case 'more': screen = <More />; break;
+    case 'home': screen = <Home />; break;
+    case 'work': screen = b ? <ProcessOrder key={b} orderId={b} /> : <OrderBoard />; break;
+    case 'make': screen = b ? <MakeForStock key={b} skuId={b} /> : <MakeBoard />; break;
     case 'accounts': screen = <Accounts section={b} />; break;
     case 'invoice': screen = <InvoiceView id={b} />; break;
     case 'purchasing': screen = <Purchasing section={b} />; break;
     case 'production': screen = <Production section={b} id={c} />; break;
-    default: screen = <Home />;
+    default: screen = <OrderBoard />;
   }
 
+  // The three main buttons follow the floor's flow: Orders → Process (make / repack) → Inventory
   const tabs = [
-    { id: 'home', label: 'Home', icon: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z', show: true },
-    { id: 'pack', label: 'Pack', icon: 'M4 8l8-4 8 4v8l-8 4-8-4zM4 8l8 4 8-4M12 12v8', show: can('packer', 'warehouse', 'manager') },
-    { id: 'dispatch', label: 'Dispatch', icon: 'M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z', show: can('packer', 'warehouse', 'manager') },
-    { id: 'inventory', label: 'Stock', icon: 'M4 5h16v4H4zM5 9v10h14V9M10 13h4', show: true },
-    { id: 'more', label: 'More', icon: 'M5 12h.01M12 12h.01M19 12h.01', show: true },
+    { id: 'work', label: t('orders'), icon: 'M6 4h12v16H6zM9 8h6M9 12h6M9 16h4', show: true, also: ['', 'work', 'pack', 'dispatch', 'orders'] },
+    { id: 'make', label: t('tab_process'), icon: 'M7 14h10v6H7zM6.5 14A4 4 0 017 6.1a5 5 0 019.9.1A4 4 0 0117.5 14', show: true, also: ['make', 'production'] },
+    { id: 'inventory', label: t('tab_inventory'), icon: 'M4 5h16v4H4zM5 9v10h14V9M10 13h4', show: true, also: ['inventory', 'stock', 'labels', 'receive', 'transfer'] },
+    { id: 'more', label: t('tab_more'), icon: 'M5 12h.01M12 12h.01M19 12h.01', show: true, also: ['more'] },
   ].filter((t) => t.show);
 
   return (
@@ -104,7 +111,7 @@ function Shell() {
       {screen}
       <nav className="tabbar" aria-label="Main">
         {tabs.map((t) => {
-          const on = t.id === 'inventory' ? ['inventory', 'stock', 'labels'].includes(a ?? '') : (a ?? 'home') === t.id;
+          const on = t.also.includes(a ?? '');
           return (
           <a key={t.id} href={`#/${t.id}`} className={on ? 'on' : ''} aria-current={on ? 'page' : undefined}>
             <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">

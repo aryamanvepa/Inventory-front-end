@@ -376,7 +376,7 @@ function Flow({ action, presetId, presetReason }: { action: Action; presetId?: s
         onNext={presetId ? () => go(`inventory/${action}`) : restart} onPrint={result.batch ? () => {
           try {
             sessionStorage.setItem('tl-label', JSON.stringify({ kind: 'batch', sku_id: item.id, code: result.batch.code,
-              name: item.name, expires_on: result.batch.expires_on, copies: Math.min(Math.ceil(Number(n)), 500) }));
+              name: item.name, expires_on: result.batch.expires_on, copies: stickerCopies(item, n), back: `inventory/${action}` }));
           } catch { /* ignore */ }
           go('labels');
         } : undefined} />}
@@ -386,6 +386,10 @@ function Flow({ action, presetId, presetReason }: { action: Action; presetId?: s
     </Page>
   );
 }
+
+// One sticker per pack for finished goods and counted pieces; one per delivery for loose kg / litres
+const stickerCopies = (item: Item, n: string) =>
+  item.item_type === 'finished' || ['pcs'].includes(item.unit) ? Math.min(Math.ceil(Number(n)), 500) : 1;
 
 function Done({ action, item, result, n, t, onNext, onPrint }: {
   action: Action; item: Item; result: any; n: string; t: T; onNext(): void; onPrint?: () => void;
@@ -408,8 +412,9 @@ function Done({ action, item, result, n, t, onNext, onPrint }: {
         {!pending && shelf != null && <span>{t('now_on_shelf', { n: `${qty(shelf)} ${unit}` })}</span>}
         {result.batch && <span className="small">{t('batch')} <span className="mono">{result.batch.code}</span> · {t('best_before')} {date(result.batch.expires_on)}</span>}
       </div>
-      <button type="button" className={`btn btn-big btn-go go-${action}`} onClick={onNext}>{t('next')} →</button>
-      {onPrint && <button type="button" className="btn btn-big" onClick={onPrint}><Icon d={ICONS.stickers} size={22} /> {t('print_n', { n: Math.min(Math.ceil(Number(n)), 500) })}</button>}
+      {/* after anything comes in, printing its barcode stickers is the next step */}
+      {onPrint && <button type="button" className="btn btn-big btn-go go-stickers" onClick={onPrint}><Icon d={ICONS.stickers} size={22} /> {t('print_n', { n: stickerCopies(item, n) })}</button>}
+      <button type="button" className={`btn btn-big ${onPrint ? '' : `btn-go go-${action}`}`} onClick={onNext}>{t('next')} →</button>
       <a className="btn btn-ghost" href="#/inventory">{t('back_home')}</a>
     </div>
   );

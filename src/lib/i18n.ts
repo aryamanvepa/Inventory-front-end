@@ -1,10 +1,10 @@
 // Words for the simple stock screens, in English and Hindi.
 // To add a language (e.g. Telugu), copy the `hi` block, translate it,
 // and add it to LANGS. Missing words fall back to English.
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const en = {
-  stock: 'Stock',
+  stock: 'Inventory',
   in: 'Stock IN', in_hint: 'Things that came in',
   out: 'Stock OUT', out_hint: 'Damaged, expired, samples',
   count: 'COUNT', count_hint: 'Count what is on the shelf',
@@ -41,11 +41,50 @@ const en = {
   stickers_unit: 'stickers', print: 'Print', barcode_book: 'Barcode book',
   barcode_book_hint: 'One page with every item. Scan from it when a pack has no sticker.',
   clear: 'Clear', error: 'That didn\'t work', try_again: 'Try again', loading: 'Loading…',
+  // Orders & Process
+  orders: 'Orders', tab_process: 'Process', tab_inventory: 'Inventory', tab_more: 'More', dashboard_link: 'Business dashboard →', scan_order: 'Scan or type an order number', no_order: 'No order {code}',
+  to_do: 'To do', sent: 'Sent', nothing_to_do: 'No orders waiting. 🎉', nothing_sent: 'Nothing sent yet.',
+  k_ready: 'Ready', k_make: 'Make first', k_repack: 'Repack first', k_rm_short: 'Raw material out', k_no_recipe: 'No recipe',
+  k_packed: 'Packed', k_sent: 'Sent', k_unpaid: 'Waiting for payment', k_failed: 'Delivery failed',
+  process: 'Process', see_short: 'See what is short', dispatch: 'Dispatch', invoice: 'Invoice', open_order: 'Open order',
+  steps: 'Steps', step_make: 'Make', step_pack: 'Pack', step_dispatch: 'Dispatch', step_done: 'Invoice',
+  collect_cod: 'Cash on delivery — the courier collects {amount}', back_orders: 'Back to orders',
+  make_title: 'Make {name}', repack_title: 'Repack {name}',
+  no_recipe_msg: 'There is no recipe for this product, so the system doesn\'t know what to use. Ask your manager to add one.',
+  add_recipe: 'Add a recipe', not_in_recipe: '{name} is not used for this product', batch_expired: 'Batch {code} has expired — don\'t use it',
+  made_n: '{n} packs made', repacked_n: '{n} packs repacked', continue: 'Continue',
+  how_many_made: 'How many packs did you make?', how_many_repacked: 'How many packs did you fill?',
+  materials_auto: 'The raw material used is taken off stock automatically (oldest first).', yes_made: 'Yes, {n} packs done',
+  order_needs: 'This order needs {n} more · one batch makes {per}', more_products: '{n} more product(s) after this',
+  how_many_to_make: 'How many will you make?', how_many_to_repack: 'How many packs will you fill?',
+  less_than_order: 'That is less than the order needs ({n}).',
+  rm_out_title: 'Raw material is short', material: 'Material', need: 'Need', have: 'Have', short: 'Short',
+  order_rm: 'Order raw material', show_manager: 'Show this screen to your manager so they can order it.',
+  scan_bulk: 'Scan the bulk pack you are repacking from', scan_each_rm: 'Scan each raw material as you take it',
+  ticked: 'Ticked by hand', tick_by_hand: 'No sticker — tick',
+  mis_title: 'Cost and margin (estimate)', cost_batch: 'Cost of this batch', cost_pack: 'Cost per pack', sells_at: 'Sells at (website)', margin: 'Margin',
+  missing_costs: 'Some raw materials have no cost yet, so the real cost is higher.',
+  cant_make_short: 'Can\'t start — raw material short', make_now: 'Made it', repack_now: 'Repacked it', tick_all_first: 'Scan or tick every item first',
+  ask_warehouse: 'Ask the warehouse team to make this.', delivered: 'Delivered',
+  open_invoice: 'Open invoice {code}', invoice_pending: 'Invoice not issued yet — the company GST details are missing (manager: Accounts → Setup).',
+  track: 'Track delivery',
+  step_repack: 'Repack', for_orders: 'Needed for orders', for_stock: 'Make or repack for stock',
+  nothing_to_make: 'Nothing to make — every order has stock.', no_recipes_yet: 'No recipes yet. A manager adds them under More → Production.',
+  short_for_orders: '{n} short · for {orders}', orders_need: 'Waiting orders need {n} · one batch makes {per}', per_batch: 'One batch makes {per}',
+  // Packing
+  fifo_warn: 'Take the older batch first: {code} (best before {date})', ok_take_older: 'OK, I\'ll take the older one', use_anyway: 'Use this one anyway',
+  wait_stock: 'This order is waiting for stock — do not pack.', not_paid: 'Not paid yet — do not pack or send.',
+  scanned_of: '{n} of {total} items scanned', take_from: 'Take from {code} · best before {date}',
+  scan_batch_label: 'Now scan the batch label for {name}', no_label_pick: 'No label? Pick the batch printed on the pack:',
+  scan_batch_short: 'Scan batch label', scan_pack: 'Scan each pack', mark_packed: 'Mark as packed', scan_more: 'Scan {n} more',
+  packed_at: 'Packed {when}',
+  delivery_by: 'Delivery by', booking_ref: 'Booking reference', booking_ref_opt: 'Reference (optional)',
+  tracking_link: 'Tracking link (optional)', delivery_cost: 'Delivery cost ₹ (optional)', confirm_dispatch: 'Confirm dispatch',
 };
 type Key = keyof typeof en;
 
 const hi: Partial<Record<Key, string>> = {
-  stock: 'स्टॉक',
+  stock: 'इन्वेंटरी',
   in: 'माल आया', in_hint: 'जो सामान आया है',
   out: 'माल निकाला', out_hint: 'टूटा, एक्सपायर, सैंपल',
   count: 'गिनती', count_hint: 'शेल्फ पर कितना है गिनें',
@@ -82,6 +121,43 @@ const hi: Partial<Record<Key, string>> = {
   stickers_unit: 'स्टिकर', print: 'छापें', barcode_book: 'बारकोड किताब',
   barcode_book_hint: 'एक पेज पर सारे सामान। जब पैकेट पर स्टिकर न हो, तो यहाँ से स्कैन करें।',
   clear: 'मिटाएँ', error: 'यह नहीं हुआ', try_again: 'फिर कोशिश करें', loading: 'लोड हो रहा है…',
+  orders: 'ऑर्डर', tab_process: 'प्रोसेस', tab_inventory: 'इन्वेंटरी', tab_more: 'और', dashboard_link: 'बिज़नेस डैशबोर्ड →', scan_order: 'ऑर्डर नंबर स्कैन करें या लिखें', no_order: 'ऑर्डर {code} नहीं मिला',
+  to_do: 'करना है', sent: 'भेज दिए', nothing_to_do: 'कोई ऑर्डर बाकी नहीं। 🎉', nothing_sent: 'अभी कुछ नहीं भेजा।',
+  k_ready: 'तैयार', k_make: 'पहले बनाना है', k_repack: 'पहले रीपैक करना है', k_rm_short: 'कच्चा माल खत्म', k_no_recipe: 'रेसिपी नहीं',
+  k_packed: 'पैक हो गया', k_sent: 'भेज दिया', k_unpaid: 'पेमेंट बाकी', k_failed: 'डिलीवरी नहीं हुई',
+  process: 'शुरू करें', see_short: 'क्या कम है देखें', dispatch: 'भेजें', invoice: 'बिल', open_order: 'ऑर्डर खोलें',
+  steps: 'स्टेप', step_make: 'बनाएँ', step_pack: 'पैक', step_dispatch: 'भेजें', step_done: 'बिल',
+  collect_cod: 'कैश ऑन डिलीवरी — कूरियर {amount} लेगा', back_orders: 'ऑर्डर पर वापस',
+  make_title: '{name} बनाएँ', repack_title: '{name} रीपैक करें',
+  no_recipe_msg: 'इस उत्पाद की रेसिपी नहीं है, इसलिए सिस्टम को नहीं पता क्या इस्तेमाल करना है। मैनेजर से रेसिपी डलवाएँ।',
+  add_recipe: 'रेसिपी डालें', not_in_recipe: '{name} इस उत्पाद में इस्तेमाल नहीं होता', batch_expired: 'बैच {code} एक्सपायर है — इस्तेमाल न करें',
+  made_n: '{n} पैकेट बन गए', repacked_n: '{n} पैकेट रीपैक हो गए', continue: 'आगे बढ़ें',
+  how_many_made: 'कितने पैकेट बने?', how_many_repacked: 'कितने पैकेट भरे?',
+  materials_auto: 'इस्तेमाल हुआ कच्चा माल स्टॉक से अपने आप कम होगा (पुराना पहले)।', yes_made: 'हाँ, {n} पैकेट तैयार',
+  order_needs: 'इस ऑर्डर को {n} और चाहिए · एक बैच में {per} बनते हैं', more_products: 'इसके बाद {n} और उत्पाद',
+  how_many_to_make: 'कितने बनाएँगे?', how_many_to_repack: 'कितने पैकेट भरेंगे?',
+  less_than_order: 'यह ऑर्डर की ज़रूरत ({n}) से कम है।',
+  rm_out_title: 'कच्चा माल कम है', material: 'सामान', need: 'चाहिए', have: 'है', short: 'कम',
+  order_rm: 'कच्चा माल मँगवाएँ', show_manager: 'यह स्क्रीन मैनेजर को दिखाएँ ताकि वे मँगवा सकें।',
+  scan_bulk: 'जिस बड़े पैक से भर रहे हैं उसे स्कैन करें', scan_each_rm: 'हर कच्चा माल लेते समय स्कैन करें',
+  ticked: 'हाथ से टिक किया', tick_by_hand: 'स्टिकर नहीं — टिक करें',
+  mis_title: 'लागत और मार्जिन (अनुमान)', cost_batch: 'इस बैच की लागत', cost_pack: 'एक पैकेट की लागत', sells_at: 'बिक्री दाम (वेबसाइट)', margin: 'मार्जिन',
+  missing_costs: 'कुछ कच्चे माल की लागत नहीं डली है, असली लागत ज़्यादा है।',
+  cant_make_short: 'शुरू नहीं कर सकते — कच्चा माल कम है', make_now: 'बन गया', repack_now: 'रीपैक हो गया', tick_all_first: 'पहले हर सामान स्कैन या टिक करें',
+  ask_warehouse: 'वेयरहाउस टीम से बनवाएँ।', delivered: 'डिलीवर हो गया',
+  open_invoice: 'बिल {code} खोलें', invoice_pending: 'बिल अभी नहीं बना — कंपनी की GST जानकारी नहीं डली (मैनेजर: Accounts → Setup)।',
+  track: 'डिलीवरी ट्रैक करें',
+  step_repack: 'रीपैक', for_orders: 'ऑर्डर के लिए चाहिए', for_stock: 'स्टॉक के लिए बनाएँ या रीपैक करें',
+  nothing_to_make: 'कुछ नहीं बनाना — हर ऑर्डर का स्टॉक है।', no_recipes_yet: 'अभी कोई रेसिपी नहीं। मैनेजर More → Production में डालते हैं।',
+  short_for_orders: '{n} कम · {orders} के लिए', orders_need: 'बाकी ऑर्डर को {n} चाहिए · एक बैच में {per} बनते हैं', per_batch: 'एक बैच में {per} बनते हैं',
+  fifo_warn: 'पहले पुराना बैच लें: {code} ({date} से पहले इस्तेमाल करें)', ok_take_older: 'ठीक है, पुराना लूँगा', use_anyway: 'फिर भी यही लें',
+  wait_stock: 'यह ऑर्डर स्टॉक का इंतज़ार कर रहा है — पैक न करें।', not_paid: 'पेमेंट नहीं हुआ — न पैक करें, न भेजें।',
+  scanned_of: '{total} में से {n} स्कैन हुए', take_from: '{code} से लें · {date} से पहले',
+  scan_batch_label: 'अब {name} का बैच लेबल स्कैन करें', no_label_pick: 'लेबल नहीं? पैकेट पर छपा बैच चुनें:',
+  scan_batch_short: 'बैच लेबल स्कैन करें', scan_pack: 'हर पैकेट स्कैन करें', mark_packed: 'पैक हो गया', scan_more: '{n} और स्कैन करें',
+  packed_at: 'पैक हुआ {when}',
+  delivery_by: 'डिलीवरी किससे', booking_ref: 'बुकिंग नंबर', booking_ref_opt: 'नंबर (ज़रूरी नहीं)',
+  tracking_link: 'ट्रैकिंग लिंक (ज़रूरी नहीं)', delivery_cost: 'डिलीवरी खर्च ₹ (ज़रूरी नहीं)', confirm_dispatch: 'भेजना पक्का करें',
 };
 
 export const LANGS = { en: { name: 'English', words: en }, hi: { name: 'हिंदी', words: hi } } as const;
@@ -96,9 +172,15 @@ function savedLang(): Lang {
 
 export function useT() {
   const [lang, setLangState] = useState<Lang>(savedLang);
+  // every screen and the tab bar switch together
+  useEffect(() => {
+    const on = (e: Event) => setLangState((e as CustomEvent<Lang>).detail);
+    window.addEventListener('tl-lang', on);
+    return () => window.removeEventListener('tl-lang', on);
+  }, []);
   const setLang = useCallback((l: Lang) => {
-    setLangState(l);
     try { localStorage.setItem('tl-lang', l); } catch { /* private mode */ }
+    window.dispatchEvent(new CustomEvent('tl-lang', { detail: l }));
   }, []);
   const t = useCallback((key: Key, vars: Record<string, string | number> = {}) => {
     const s = (LANGS[lang].words as Partial<Record<Key, string>>)[key] ?? en[key] ?? key;

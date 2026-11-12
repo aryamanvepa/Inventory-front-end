@@ -8,6 +8,7 @@ import type { Backend, DemoUser } from './backend';
 import shim from '../../supabase/local-shim.sql?raw';
 import seed from '../../supabase/seed.sql?raw';
 import demoUsers from '../../supabase/demo-users.sql?raw';
+import demoExtras from '../../supabase/demo-extras.sql?raw';
 
 const migrations = import.meta.glob('../../supabase/migrations/*.sql', {
   query: '?raw', import: 'default', eager: true,
@@ -19,7 +20,7 @@ function hash(text: string): string {
   for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);
 }
-const DB_NAME = 'torte-living-demo-v3-' + hash(shim + Object.keys(migrations).sort().map((k) => migrations[k]).join('') + demoUsers + seed);
+const DB_NAME = 'torte-living-demo-v3-' + hash(shim + Object.keys(migrations).sort().map((k) => migrations[k]).join('') + demoUsers + seed + demoExtras);
 const DATA_DIR = 'idb://' + DB_NAME;
 const USER_KEY = 'tl-demo-user';
 
@@ -48,6 +49,7 @@ async function install(db: PGlite) {
     await tx.exec('set constraints all deferred;');
     await tx.exec(demoUsers);
     await tx.exec(seed);
+    await tx.exec(demoExtras);   // demo-only materials, recipes and orders to process
     await tx.exec('create table public.demo_installed (at timestamptz default now()); insert into public.demo_installed default values;');
   });
 }
@@ -67,11 +69,16 @@ async function open(): Promise<PGlite> {
 export async function createDemoBackend(): Promise<Backend> {
   let dbPromise = open();
   let userId = storedUser();
+  // PGlite has one connection: overlapping calls would mix up each call's
+  // signed-in user (set per transaction), so calls run strictly one at a time.
+  let queue: Promise<unknown> = Promise.resolve();
+  const serial = <X>(job: () => Promise<X>): Promise<X> => {
+    const run = queue.then(job, job);
+    queue = run.catch(() => undefined);
+    return run;
+  };
 
-  return {
-    mode: 'demo',
-    demoUsers: USERS,
-    async rpc(fn, args = {}) {
+  async function callRpc(fn: string, args: Record<string, unknown>) {
       const db = await dbPromise;
       const keys = Object.keys(args).filter((k) => args[k] !== undefined);
       const sql = `select public.${fn}(${keys.map((k, i) => `${k} => $${i + 1}`).join(', ')}) as r`;
@@ -86,6 +93,13 @@ export async function createDemoBackend(): Promise<Backend> {
         const res = await tx.query<{ r: any }>(sql, params);
         return res.rows[0]?.r;
       });
+  }
+
+  return {
+    mode: 'demo',
+    demoUsers: USERS,
+    rpc(fn, args = {}) {
+      return serial(() => callRpc(fn, args));
     },
     async currentUser() {
       if (!userId) return null;

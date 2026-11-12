@@ -20,7 +20,7 @@ const SIZES: { id: Size; page: string; cols: number; w: number; h: number }[] = 
   { id: 'a4-40', page: 'size: A4; margin: 10mm 8mm', cols: 4, w: 48.5, h: 25.4 },
   { id: 'roll', page: 'size: 50mm 25mm; margin: 0', cols: 1, w: 50, h: 25 },
 ];
-type Preset = { kind?: 'batch' | 'sku'; sku_id?: string; code?: string; name?: string; expires_on?: string; copies?: number };
+type Preset = { kind?: 'batch' | 'sku'; sku_id?: string; code?: string; name?: string; expires_on?: string; copies?: number; back?: string };
 
 function readPreset(): Preset | null {
   try {
@@ -108,7 +108,7 @@ function StickerMaker({ skuId }: { skuId?: string }) {
   const ready = item && (kind === 'product' || batch) && count > 0;
 
   return (
-    <Page title={t('stickers')} back="inventory" actions={<LangButton lang={lang} setLang={setLang} />}>
+    <Page title={t('stickers')} back={preset?.back ?? 'inventory'} actions={<LangButton lang={lang} setLang={setLang} />}>
       <PrintPage css={s.page} />
       <div className="no-print stack">
         {loading && <Loading text={t('loading')} />}
@@ -154,6 +154,7 @@ function StickerMaker({ skuId }: { skuId?: string }) {
             <button type="button" className="btn btn-primary btn-big" disabled={!ready} onClick={() => window.print()}>
               🖨 {t('print')} {count > 0 ? `· ${count}` : ''}
             </button>
+            {preset?.back && <a className="btn btn-big btn-go go-in" href={`#/${preset.back}`}>{t('continue')} →</a>}
             <p className="muted small">
               {item.gtin ? 'Printing the GS1 barcode (GTIN).' : 'Our own barcode (starts with 200) — works with every scanner in our shop and warehouse. For selling through other retailers or marketplaces, get GS1 India barcodes and add them to the product; stickers then print those instead.'}
               {' '}Try one sheet on plain paper first to check alignment.

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAction, useRpc } from '../lib/app';
 import { newKey } from '../lib/backend';
 import { ago, Card, Empty, ErrorBox, Field, inr, Loading, Page, Segmented, Sheet } from '../components/ui';
+import type { T } from '../lib/i18n';
 
 export function Dispatch() {
   const [tab, setTab] = useState<'ready' | 'out'>('ready');
@@ -49,6 +50,15 @@ export function Dispatch() {
 }
 
 function DispatchSheet({ order, providers, onClose, onDone }: { order: any; providers: any[]; onClose(): void; onDone(): void }) {
+  return (
+    <Sheet title={`Dispatch ${order.code}`} onClose={onClose}>
+      <DispatchForm order={order} providers={providers} onDone={onDone} />
+    </Sheet>
+  );
+}
+
+export function DispatchForm({ order, providers, onDone, t }: { order: any; providers: any[]; onDone(r: any): void; t?: T }) {
+  const tr = (k: Parameters<T>[0], en: string) => (t ? t(k) : en);
   const [provider, setProvider] = useState(providers[0]?.code ?? 'RAPIDO');
   const [ref, setRef] = useState('');
   const [url, setUrl] = useState('');
@@ -58,23 +68,23 @@ function DispatchSheet({ order, providers, onClose, onDone }: { order: any; prov
   const needsRef = provider !== 'OWN';
 
   return (
-    <Sheet title={`Dispatch ${order.code}`} onClose={onClose}>
-      <Field label="Delivery by">
+    <div className="stack">
+      <Field label={tr('delivery_by', 'Delivery by')}>
         <Segmented value={provider} onChange={setProvider} options={providers.map((p) => ({ value: p.code, label: p.name }))} />
       </Field>
-      <Field label={needsRef ? 'Booking reference' : 'Reference (optional)'} hint={needsRef ? 'From the Rapido / iCarry booking' : 'e.g. delivery person name'}>
+      <Field label={needsRef ? tr('booking_ref', 'Booking reference') : tr('booking_ref_opt', 'Reference (optional)')} hint={needsRef ? 'From the Rapido / iCarry booking' : 'e.g. delivery person name'}>
         <input value={ref} onChange={(e) => setRef(e.target.value)} autoCapitalize="characters" />
       </Field>
-      <Field label="Tracking link (optional)"><input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" /></Field>
-      <Field label="Delivery cost ₹ (optional)"><input inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value.replace(/[^\d.]/g, ''))} /></Field>
+      <Field label={tr('tracking_link', 'Tracking link (optional)')}><input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" /></Field>
+      <Field label={tr('delivery_cost', 'Delivery cost ₹ (optional)')}><input inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value.replace(/[^\d.]/g, ''))} /></Field>
       <button type="button" className="btn btn-primary btn-big" disabled={busy || (needsRef && !ref.trim())} onClick={async () => {
         const r = await run<any>('dispatch_order', {
           p_order_id: order.id, p_provider_code: provider, p_booking_ref: ref.trim() || null,
           p_tracking_url: url.trim() || null, p_freight_cost: cost ? Number(cost) : null, p_idempotency_key: key,
         }, `${order.code} dispatched`);
-        if (r) onDone();
-      }}>Confirm dispatch</button>
-    </Sheet>
+        if (r) onDone(r);
+      }}>{tr('confirm_dispatch', 'Confirm dispatch')}</button>
+    </div>
   );
 }
 

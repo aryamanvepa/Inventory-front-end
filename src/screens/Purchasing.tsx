@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAction, useApp, useRpc } from '../lib/app';
 import { newKey } from '../lib/backend';
 import { Badge, Card, date, Empty, ErrorBox, Field, inr, Loading, Page, qty, Segmented, Sheet, ymd } from '../components/ui';
@@ -33,7 +33,14 @@ function Orders() {
   const [filter, setFilter] = useState('open_any');
   const list = useRpc<any[]>('list_purchase_orders', { p_status: filter === 'all' ? null : filter }, [filter]);
   const [receive, setReceive] = useState<{ po: any; line: any } | null>(null);
-  const [create, setCreate] = useState(false);
+  const [prefill] = useState<{ sku_id: string; qty: number }[] | null>(() => {
+    try {
+      const raw = sessionStorage.getItem('tl-po-prefill');
+      return raw ? JSON.parse(raw).lines : null;
+    } catch { return null; }
+  });
+  useEffect(() => { try { sessionStorage.removeItem('tl-po-prefill'); } catch { /* ignore */ } }, []);
+  const [create, setCreate] = useState(!!prefill && can('manager', 'accountant'));
   return (
     <>
       {can('manager', 'accountant') && <button type="button" className="btn btn-primary" onClick={() => setCreate(true)}>New purchase order</button>}
@@ -64,7 +71,7 @@ function Orders() {
         ))}
       </div>
       {receive && <ReceiveSheet {...receive} onClose={() => setReceive(null)} onDone={() => { setReceive(null); list.reload(); }} />}
-      {create && <NewPoSheet onClose={() => setCreate(false)} onDone={() => { setCreate(false); list.reload(); }} />}
+      {create && <NewPoSheet prefill={prefill} onClose={() => setCreate(false)} onDone={() => { setCreate(false); list.reload(); }} />}
     </>
   );
 }
@@ -83,7 +90,8 @@ function ReceiveSheet({ po, line, onClose, onDone }: { po: any; line: any; onClo
       {done ? (
         <div className="stack">
           <div className="scan-result ok">Received {n} {line.unit} into batch {done.batch_code}. Stock and the books are updated.</div>
-          <a className="btn" href="#/labels" onClick={() => sessionStorage.setItem('tl-label', JSON.stringify({ kind: 'batch', code: done.batch_code, name: line.name, expires_on: exp || undefined, copies: 6 }))}>Print batch labels</a>
+          <a className="btn btn-big btn-go go-stickers" href="#/labels" onClick={() => sessionStorage.setItem('tl-label', JSON.stringify({ kind: 'batch', sku_id: line.sku_id, code: done.batch_code, name: line.name, expires_on: exp || undefined,
+            copies: line.unit === 'pcs' ? Math.min(Math.ceil(Number(n)), 500) : 1, back: 'purchasing/orders' }))}>Print barcode stickers for this delivery</a>
           <button type="button" className="btn btn-primary btn-big" onClick={onDone}>Done</button>
         </div>
       ) : (
@@ -104,14 +112,16 @@ function ReceiveSheet({ po, line, onClose, onDone }: { po: any; line: any; onClo
   );
 }
 
-function NewPoSheet({ onClose, onDone }: { onClose(): void; onDone(): void }) {
+function NewPoSheet({ prefill, onClose, onDone }: { prefill?: { sku_id: string; qty: number }[] | null; onClose(): void; onDone(): void }) {
   const { ref, suppliers } = useSuppliers();
   const mats = useRpc<any[]>('list_materials');
   const skus = useRpc<any[]>('list_skus');
   const [supplier, setSupplier] = useState('');
   const [loc, setLoc] = useState('');
   const [expected, setExpected] = useState('');
-  const [lines, setLines] = useState([{ sku_id: '', qty: '', unit_price: '', gst_rate: '' }]);
+  const [lines, setLines] = useState(prefill?.length
+    ? prefill.map((p) => ({ sku_id: p.sku_id, qty: String(p.qty), unit_price: '', gst_rate: '' }))
+    : [{ sku_id: '', qty: '', unit_price: '', gst_rate: '' }]);
   const { run, busy } = useAction();
   const items = useMemo(() => [
     ...(mats.data ?? []).map((m) => ({ id: m.id, label: `${m.name} (${m.code}, ${m.unit})` })),

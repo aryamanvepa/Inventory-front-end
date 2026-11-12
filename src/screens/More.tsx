@@ -4,7 +4,9 @@ import { Page } from '../components/ui';
 export function More() {
   const { can, profile, backend, refreshProfile } = useApp();
   const items = [
-    { href: 'inventory', label: 'Stock (simple)', sub: 'Stock in, stock out, count, find — big buttons, English / हिंदी', show: true },
+    { href: 'home', label: 'Overview', sub: 'Work queue, today\'s sales and alerts', show: true },
+    { href: 'pack', label: 'Pack (list view)', sub: 'The packing queue on its own', show: can('packer', 'warehouse', 'manager') },
+    { href: 'dispatch', label: 'Dispatch & deliveries', sub: 'Ready to send, out for delivery, delivered / failed', show: can('packer', 'warehouse', 'manager') },
     { href: 'receive', label: 'Receive stock (detailed)', sub: 'Choose batch, manufacturer, location yourself', show: can('warehouse', 'manager') },
     { href: 'transfer', label: 'Transfer stock', sub: 'Between locations, consignment or outright', show: can('warehouse', 'manager') },
     { href: 'labels', label: 'Barcode stickers', sub: 'Product and batch stickers, barcode book', show: can('warehouse', 'manager') },
