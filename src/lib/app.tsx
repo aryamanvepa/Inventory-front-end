@@ -12,6 +12,8 @@ interface AppCtx {
   go(path: string): void;
   toast(text: string, kind?: ToastKind): void;
   can(...roles: Role[]): boolean;
+  settings: { testing_mode?: boolean };
+  reloadSettings(): Promise<void>;
 }
 
 const Ctx = createContext<AppCtx | null>(null);
@@ -32,6 +34,11 @@ export function AppProvider(props: {
 }) {
   const [route, setRoute] = useState<string[]>(parseHash);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [settings, setSettings] = useState<AppCtx['settings']>({});
+  const reloadSettings = useCallback(async () => {
+    try { setSettings(await props.backend.rpc('get_app_settings')); } catch { /* older database: no settings yet */ }
+  }, [props.backend]);
+  useEffect(() => { reloadSettings(); }, [reloadSettings]);
   const seq = useRef(0);
 
   useEffect(() => {
@@ -55,6 +62,8 @@ export function AppProvider(props: {
     go: (path) => { window.location.hash = '#/' + path.replace(/^\//, ''); },
     toast,
     can: (...roles) => role === 'admin' || (!!role && roles.includes(role)),
+    settings,
+    reloadSettings,
   };
 
   return (

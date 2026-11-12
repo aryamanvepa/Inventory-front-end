@@ -60,7 +60,7 @@ export function Receive() {
   const locId = loc || locations.find((l: any) => l.is_default)?.id || locations[0]?.id;
 
   return (
-    <Page title="Receive stock" back="home">
+    <Page narrow title="Receive stock" back="home">
       <ol className="steps">
         {(['product', 'batch', 'qty'] as Step[]).map((s, i) => (
           <li key={s} className={step === s ? 'on' : (['product', 'batch', 'qty', 'done'].indexOf(step) > i ? 'done' : '')}>

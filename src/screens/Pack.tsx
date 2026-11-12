@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAction, useApp, useRpc } from '../lib/app';
 import { friendlyError, newKey } from '../lib/backend';
-import { Scanner, feedback } from '../components/Scanner';
+import { Scanner, feedback, useTestingMode } from '../components/Scanner';
 import { ago, Badge, Card, date, Empty, ErrorBox, Loading, Page, qty, Sheet, dateTime } from '../components/ui';
 import { useT, type T } from '../lib/i18n';
 import type { Batch } from './Inventory';
@@ -53,7 +53,7 @@ export function PackOrder({ orderId }: { orderId: string }) {
   if (ord.error) return <Page title="Pack order" back="pack"><ErrorBox text={ord.error} onRetry={ord.reload} /></Page>;
   if (!o) return <Page title="Pack order" back="pack"><Loading /></Page>;
   return (
-    <Page title={o.code} back="pack" actions={<Badge status={o.status} />}>
+    <Page narrow title={o.code} back="pack" actions={<Badge status={o.status} />}>
       <OrderCustomer o={o} />
       <PackPanel order={o} setOrder={ord.setData} t={t} onPacked={() => go('dispatch')} />
     </Page>
@@ -157,6 +157,27 @@ export function PackPanel({ order: o, setOrder, t, onPacked }: { order: any; set
     }
   };
 
+  // Testing: scan every remaining pack from the oldest batch, one real scan at a time
+  const testing = useTestingMode();
+  const [bypassing, setBypassing] = useState(false);
+  const bypass = async () => {
+    setBypassing(true);
+    let cur = o;
+    try {
+      for (let guard = 0; guard < 500; guard++) {
+        const line = cur.lines.find((l: any) => Number(l.scanned) < Number(l.qty));
+        if (!line) break;
+        const s = suggestions(cur, shelf)[line.sku_id];
+        const r = await backend.rpc<ScanResult>('pack_scan', { p_order_id: orderId, p_code: s ? s.code : line.sku_code,
+          p_batch_code: null, p_manual_batch: false, p_idempotency_key: newKey('scan-bypass') });
+        if (r.result !== 'accepted' || !r.order) { setLast({ ok: false, text: r.message }); feedback(false); break; }
+        cur = r.order; setOrder(cur);
+      }
+      if (cur.lines.every((l: any) => Number(l.scanned) >= Number(l.qty))) { setLast({ ok: true, text: t('bypass_done') }); feedback(true); }
+    } catch (e) { setLast({ ok: false, text: friendlyError(e) }); feedback(false); }
+    finally { setBypassing(false); }
+  };
+
   const total = o.lines.reduce((n: number, l: any) => n + Number(l.qty), 0);
   const done = o.lines.reduce((n: number, l: any) => n + Number(l.scanned), 0);
   const complete = done === total;
@@ -222,6 +243,11 @@ export function PackPanel({ order: o, setOrder, t, onPacked }: { order: any; set
           <Scanner onScan={(c) => scan(c)} busy={busy} placeholder={needBatch ? t('scan_batch_short') : t('scan_pack')}
             hints={o.lines.filter((l: any) => Number(l.scanned) < Number(l.qty)).flatMap((l: any) => (shelf[l.sku_id] ?? [])
               .filter((b) => b.id && !b.expired && !b.on_hold).map((b) => ({ code: b.code, label: `${l.sku_name} · ${date(b.expires_on)}` })))} />
+          {testing && !complete && (
+            <button type="button" className="btn scan-override bypass-btn" disabled={bypassing || busy} onClick={bypass}>
+              <span className="test-tag">TEST</span> {bypassing ? t('loading') : t('bypass_pack', { n: qty(total - done) })}
+            </button>
+          )}
           {last && <div className={`scan-result ${last.ok ? 'ok' : 'bad'}`} role="status">{last.text}</div>}
           <button type="button" className="btn btn-primary btn-big" disabled={!complete || acting}
             onClick={async () => {

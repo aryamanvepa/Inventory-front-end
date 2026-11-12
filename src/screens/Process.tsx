@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useApp, useRpc } from '../lib/app';
 import { friendlyError, newKey } from '../lib/backend';
-import { Scanner, feedback } from '../components/Scanner';
+import { Scanner, feedback, useTestingMode } from '../components/Scanner';
 import { ago, date, Empty, ErrorBox, inr, Loading, Page, qty, Segmented, ymd } from '../components/ui';
 import { useT, type T } from '../lib/i18n';
 import { Avatar, ICONS, Icon, LangButton, QtyPad, type Batch, type Detail, type Item } from './Inventory';
@@ -228,7 +228,7 @@ export function ProcessOrder({ orderId }: { orderId: string }) {
   const steps: Step[] = [...(made || makeKinds.includes(a.kind) ? ['make' as Step] : []), 'pack', 'dispatch', 'done'];
 
   return (
-    <Page title={o.code} back="work" actions={<LangButton lang={lang} setLang={setLang} />}>
+    <Page narrow title={o.code} back="work" actions={<LangButton lang={lang} setLang={setLang} />}>
       {current && <StepBar steps={steps} current={current} t={t} repack={a.repack} />}
       <BrandTags brands={a.brands} />
       <OrderCustomer o={o} />
@@ -296,6 +296,7 @@ function MakeStep({ line, more, ctx, t, back, onMade, onContinue, forOrder = tru
   const [key, setKey] = useState(() => newKey('make'));
   const sku = ctx.skus.get(line.sku_id);
   const item = ctx.items.get(line.sku_id);
+  const testing = useTestingMode();
 
   useEffect(() => {
     if (!line.recipe) return;
@@ -448,6 +449,12 @@ function MakeStep({ line, more, ctx, t, back, onMade, onContinue, forOrder = tru
               );
             })}
           </ul>
+          {testing && canMake && !allTicked && (
+            <button type="button" className="btn scan-override bypass-btn" onClick={() => {
+              setTicked(Object.fromEntries(needs.map((n) => [n.material_sku_id, suggested(n.material_sku_id)?.code ?? '✓'])));
+              setMsg({ ok: true, text: t('bypass_done') });
+            }}><span className="test-tag">TEST</span> {t('bypass_tick')}</button>
+          )}
           {canMake && <Scanner onScan={onScan} placeholder={t('scan_title')} autoFocus={false}
             hints={needs.flatMap((n) => (mats[n.material_sku_id]?.batches ?? []).filter((b) => b.id && !b.expired)
               .map((b) => ({ code: b.code, label: `${n.name} · ${t('best_before')} ${date(b.expires_on)}` })))} />}
@@ -594,7 +601,7 @@ export function MakeForStock({ skuId }: { skuId: string }) {
   }, [backend, skuId]);
   useEffect(() => { load(); }, [load]);
   return (
-    <Page title={t('process')} back="make" actions={<LangButton lang={lang} setLang={setLang} />}>
+    <Page narrow title={t('process')} back="make" actions={<LangButton lang={lang} setLang={setLang} />}>
       {err && <ErrorBox text={err} onRetry={load} />}
       {!state && !err && <Loading text={t('loading')} />}
       {state && <MakeStep line={state.line} more={0} ctx={state.ctx} t={t} back={`make/${skuId}`} forOrder={false}

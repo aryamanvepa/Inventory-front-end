@@ -108,7 +108,7 @@ function StickerMaker({ skuId }: { skuId?: string }) {
   const ready = item && (kind === 'product' || batch) && count > 0;
 
   return (
-    <Page title={t('stickers')} back={preset?.back ?? 'inventory'} actions={<LangButton lang={lang} setLang={setLang} />}>
+    <Page narrow title={t('stickers')} back={preset?.back ?? 'inventory'} actions={<LangButton lang={lang} setLang={setLang} />}>
       <PrintPage css={s.page} />
       <div className="no-print stack">
         {loading && <Loading text={t('loading')} />}

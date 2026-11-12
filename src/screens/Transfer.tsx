@@ -35,7 +35,7 @@ export function Transfer() {
   const sel = skus.data.find((s) => s.id === skuId);
 
   return (
-    <Page title="Transfer stock" back="home">
+    <Page narrow title="Transfer stock" back="home">
       <p className="muted small">Moves stock between locations. Choose whether ownership stays with Torte Living (e.g. consignment
         to a distributor, or stock sent to a contract manufacturer) or passes to the partner (outright sale).</p>
       <Field label="Product">

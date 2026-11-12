@@ -453,3 +453,63 @@ a.pick, a.order-card { text-decoration: none; color: inherit; }
   border: 1px solid var(--line); background: var(--surface); color: inherit; font: inherit; cursor: pointer; }
 .override-sub { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 0 4px 12px; align-items: center; }
 .nutri-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px 10px; } .nutri-grid label { display: flex; flex-direction: column; gap: 2px; }
+
+/* ================================================================== */
+/* Responsive layout: phones → tablets → computers                     */
+/* ================================================================== */
+/* every option of a tab row stays visible: wrap instead of hiding them in a scroll strip */
+.segmented { flex-wrap: wrap; overflow-x: visible; }
+.segmented button { flex: 1 1 auto; }
+.tbl button.link { text-align: left; }
+.tbl td { overflow-wrap: anywhere; }
+.tabbar-brand { display: none; }
+img, svg, video { max-width: 100%; }
+
+/* small phones (≤ 359 px) */
+@media (max-width: 359px) {
+  .page { padding: 10px 12px 20px; }
+  .big-tiles { gap: 8px; }
+  .big-tile { min-height: 118px; padding: 12px; }
+  .bt-word { font-size: 1.2rem; }
+  .qty-btn { width: 58px; height: 62px; font-size: 1.9rem; }
+  .qty-input { height: 62px; font-size: 2rem; }
+  .qty-chips .btn { min-width: 52px; }
+  .tabbar a { font-size: .66rem; }
+  .order-foot { flex-wrap: wrap; }
+  .order-foot .btn { width: 100%; }
+  .stock-row .big-num { font-size: 1.2rem; }
+}
+
+/* tablets (≥ 600 px): wider pages, cards in columns */
+@media (min-width: 600px) {
+  .page { max-width: 1000px; padding: 16px 24px 32px; }
+  .page.page-narrow { max-width: 720px; }
+  .big-tiles { grid-template-columns: repeat(3, 1fr); }
+  .tiles, .actions-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 10px; align-items: start; }
+  .page-narrow .list { grid-template-columns: 1fr; }
+  .menu { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .tabbar { justify-content: center; }
+  .tabbar a { flex: 0 1 150px; }
+  .book-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+}
+
+/* computers (≥ 1024 px): menu on the left, content uses the width */
+@media (min-width: 1024px) {
+  .shell { padding-bottom: 0; padding-left: 232px; }
+  .tabbar { top: 0; bottom: 0; right: auto; width: 232px; flex-direction: column; justify-content: flex-start; gap: 4px;
+    padding: 18px 12px; border-top: 0; border-right: 1px solid var(--line); }
+  .tabbar-brand { display: block; padding: 0 8px 18px; }
+  .tabbar a { flex: 0 0 auto; flex-direction: row; gap: 12px; padding: 10px 12px; border-radius: 10px; font-size: .95rem; color: var(--ink-2); }
+  .tabbar a.on { background: var(--surface-2); color: var(--brand); }
+  .tabbar a:hover { background: var(--surface-2); }
+  .page { max-width: 1240px; padding: 20px 36px 48px; }
+  .page.page-narrow { max-width: 760px; }
+  .big-tiles { grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); }
+  .toasts { bottom: 24px; padding-left: 248px; }
+  .sheet { max-width: 680px; }
+}
+@media (min-width: 1600px) { .page { max-width: 1440px; } }
+@media print { .shell { padding: 0 !important; } }
+.bypass-btn { width: 100%; justify-content: center; min-height: 48px; font-size: 1rem; }
+.testing-on { border-color: var(--warn); }

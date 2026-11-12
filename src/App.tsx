@@ -112,6 +112,7 @@ function Shell() {
       {updateReady && <button type="button" className="update-banner" onClick={() => window.location.reload()}>A new version of the app is ready — tap here to update</button>}
       {screen}
       <nav className="tabbar" aria-label="Main">
+        <div className="tabbar-brand"><Brand /></div>
         {tabs.map((t) => {
           const on = t.also.includes(a ?? '');
           return (

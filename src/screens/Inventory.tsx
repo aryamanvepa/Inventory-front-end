@@ -316,7 +316,7 @@ function Flow({ action, presetId, presetReason }: { action: Action; presetId?: s
     : action === 'out' && item ? Number(batch ? item.batches.find((x) => x.id === batch.id)?.qty ?? 0 : item.on_shelf) : undefined;
 
   return (
-    <Page title={title} back="inventory" actions={<LangButton lang={lang} setLang={setLang} />}>
+    <Page narrow title={title} back="inventory" actions={<LangButton lang={lang} setLang={setLang} />}>
       {stage !== 'pick' && stage !== 'done' && item && (
         <ItemHead item={item} t={t} batch={batch} showStock={action !== 'count'} onChange={presetId ? undefined : restart} />
       )}

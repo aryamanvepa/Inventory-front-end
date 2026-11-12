@@ -10,22 +10,15 @@ import { Loading, Sheet } from './ui';
 // ---------------------------------------------------------------------
 // Scan override (testing only): a button on every scan box that "scans"
 // a code picked from a list, so the workflows can be tried without labels,
-// a camera or a scanner gun. Off on the live site unless an admin or
-// manager turns it on for that device (More → Testing tools); on in demo.
+// a camera or a scanner gun. Shown while the business-wide testing mode is
+// on (an admin switches it under More → Testing tools).
 // ---------------------------------------------------------------------
 export type ScanHint = { code: string; label: string };
-const OVERRIDE_KEY = 'tl-scan-override';
-export function scanOverrideSetting(): boolean | null {
-  try { const v = localStorage.getItem(OVERRIDE_KEY); return v === null ? null : v === '1'; } catch { return null; }
+// Testing mode is one business-wide setting (admin: More → Testing tools)
+export function useTestingMode(): boolean {
+  return useApp().settings.testing_mode === true;
 }
-export function setScanOverride(on: boolean) {
-  try { localStorage.setItem(OVERRIDE_KEY, on ? '1' : '0'); } catch { /* ignore */ }
-}
-export function useScanOverride(): boolean {
-  const { backend } = useApp();
-  const v = scanOverrideSetting();
-  return v ?? backend.mode === 'demo';
-}
+export const useScanOverride = useTestingMode;
 
 function ScanOverrideSheet({ hints, onPick, onClose }: { hints: ScanHint[]; onPick(code: string): void; onClose(): void }) {
   const { backend } = useApp();

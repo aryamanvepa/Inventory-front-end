@@ -57,9 +57,10 @@ export function Card({ children, className = '', onClick }: { children: ReactNod
     : <div className={`card ${className}`}>{children}</div>;
 }
 
-export function Page({ title, back, actions, children }: { title: string; back?: string; actions?: ReactNode; children: ReactNode }) {
+// `narrow` keeps single-task screens (scan, count, make…) at a comfortable reading width on big screens
+export function Page({ title, back, actions, children, narrow = false }: { title: string; back?: string; actions?: ReactNode; children: ReactNode; narrow?: boolean }) {
   return (
-    <main className="page">
+    <main className={`page ${narrow ? 'page-narrow' : ''}`}>
       <header className="page-head">
         {back !== undefined && (
           <a className="back" href={`#/${back}`} aria-label="Back">

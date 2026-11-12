@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useApp } from '../lib/app';
-import { scanOverrideSetting, setScanOverride } from '../components/Scanner';
 import { Page } from '../components/ui';
 
 export function More() {
@@ -26,7 +25,7 @@ export function More() {
       <ul className="menu">
         {items.map((i) => <li key={i.href}><a href={`#/${i.href}`}><strong>{i.label}</strong><span>{i.sub}</span></a></li>)}
       </ul>
-      {can('manager') && <TestingTools demo={backend.mode === 'demo'} />}
+      {can('manager') && <TestingTools />}
       <div className="card">
         <div><strong>{profile.full_name}</strong></div>
         <div className="muted small">Role: {profile.role}{backend.mode === 'demo' ? ' · demo mode' : ''}</div>
@@ -38,19 +37,25 @@ export function More() {
   );
 }
 
-// Testing tools: only on this device, only for admins and managers to switch
-function TestingTools({ demo }: { demo: boolean }) {
-  const [on, setOn] = useState(() => scanOverrideSetting() ?? demo);
+// Testing tools: one switch for the whole business (admin only)
+function TestingTools() {
+  const { settings, reloadSettings, can, backend, toast } = useApp();
+  const [busy, setBusy] = useState(false);
+  const on = settings.testing_mode === true;
   return (
-    <div className="card">
-      <strong>Testing tools</strong>
-      <label className="row-gap">
-        <input type="checkbox" checked={on} style={{ width: 'auto', minHeight: 0 }}
-          onChange={(e) => { setOn(e.target.checked); setScanOverride(e.target.checked); }} />
-        <span>Show the <strong>Scan override</strong> button on scan screens</span>
-      </label>
-      <span className="muted small">For trying the workflows without stickers, a camera or a scanner gun. It lets anyone "scan" any item,
-        so turn it off on phones used for real work. This setting is for this device only.</span>
+    <div className={`card ${on ? 'testing-on' : ''}`}>
+      <strong>Testing tools {on ? <span className="test-tag">ON</span> : <span className="muted small">(off)</span>}</strong>
+      <span className="small">While testing mode is on, every scan screen has a <strong>Scan override</strong> button and every order has a
+        <strong> scan bypass</strong> (scan all packs / tick all ingredients in one tap), for everyone on every device.</span>
+      <span className="muted small">It lets anyone skip real scanning, so an admin must turn it off before the business goes live.</span>
+      {can('admin') ? (
+        <button type="button" className={`btn ${on ? '' : 'btn-primary'}`} disabled={busy} onClick={async () => {
+          setBusy(true);
+          try { await backend.rpc('set_app_setting', { p_key: 'testing_mode', p_value: !on }); await reloadSettings(); toast(on ? 'Testing mode off' : 'Testing mode on'); }
+          catch (e) { toast(e instanceof Error ? e.message : String(e), 'error'); }
+          finally { setBusy(false); }
+        }}>{on ? 'Turn testing mode off' : 'Turn testing mode on'}</button>
+      ) : <span className="muted small">Only an admin can switch it.</span>}
     </div>
   );
 }
