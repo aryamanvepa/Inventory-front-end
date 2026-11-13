@@ -48,6 +48,8 @@ const en = {
   next_expiry: 'next expiry {date}', test_item: 'TEST', download_csv: 'Download list (CSV)', nothing_found: 'Nothing matches.',
   // Scan override (testing)
   bypass_pack: 'Scan all {n} packs (bypass)', bypass_tick: 'Tick all ingredients (bypass)', bypass_done: 'Done by test bypass ✓',
+  test_in: 'Add stock, skip all checks (test)', test_in_hint: 'No recipe, ingredients, shelf life or purchase order needed. Saved as TEST STOCK.',
+  test_make: 'Make {n} without recipe or ingredients (test)', test_made_note: 'Test override: no ingredients are used. The batch is marked TEST STOCK (expiry = shelf life, or 30 days).',
   scan_override: 'Scan override', scan_override_title: 'Pretend to scan (testing)', suggested: 'Suggested for this screen',
   all_items_barcodes: 'Any item', product_barcode: 'Product barcode', choose_batch: 'or a batch:', test_tools: 'Testing tools',
   // Orders & Process
@@ -135,6 +137,8 @@ const hi: Partial<Record<Key, string>> = {
   packed_word: 'पैक', elsewhere: 'दूसरी जगह', expired_n: '{n} एक्सपायर', on_hold_n: '{n} रोके गए', written_off: 'बट्टे खाते',
   next_expiry: 'अगली एक्सपायरी {date}', test_item: 'टेस्ट', download_csv: 'सूची डाउनलोड (CSV)', nothing_found: 'कुछ नहीं मिला।',
   bypass_pack: 'सभी {n} पैकेट स्कैन करें (बायपास)', bypass_tick: 'सारा सामान टिक करें (बायपास)', bypass_done: 'टेस्ट बायपास से हो गया ✓',
+  test_in: 'स्टॉक डालें, सारी जाँच छोड़ें (टेस्ट)', test_in_hint: 'रेसिपी, सामान, शेल्फ लाइफ या खरीद ऑर्डर की ज़रूरत नहीं। TEST STOCK के रूप में सेव होगा।',
+  test_make: 'बिना रेसिपी या सामान के {n} बनाएँ (टेस्ट)', test_made_note: 'टेस्ट ओवरराइड: कोई सामान इस्तेमाल नहीं होगा। बैच पर TEST STOCK लिखा होगा (एक्सपायरी = शेल्फ लाइफ, या 30 दिन)।',
   scan_override: 'स्कैन ओवरराइड', scan_override_title: 'स्कैन का नाटक (टेस्टिंग)', suggested: 'इस स्क्रीन के लिए सुझाव',
   all_items_barcodes: 'कोई भी सामान', product_barcode: 'उत्पाद बारकोड', choose_batch: 'या बैच:', test_tools: 'टेस्टिंग टूल',
   orders: 'ऑर्डर', tab_process: 'प्रोसेस', tab_inventory: 'इन्वेंटरी', tab_more: 'और', dashboard_link: 'बिज़नेस डैशबोर्ड →', scan_order: 'ऑर्डर नंबर स्कैन करें या लिखें', no_order: 'ऑर्डर {code} नहीं मिला',

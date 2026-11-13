@@ -5,7 +5,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useApp, useRpc } from '../lib/app';
 import { friendlyError, newKey } from '../lib/backend';
-import { Scanner, feedback } from '../components/Scanner';
+import { Scanner, feedback, useTestingMode } from '../components/Scanner';
 import { dateTime, date, Empty, ErrorBox, Field, inr, Loading, Page, qty, Segmented, Sheet } from '../components/ui';
 import { LANGS, useT, type Lang, type T } from '../lib/i18n';
 
@@ -238,7 +238,8 @@ function Hub() {
 // One flow for Stock in / Stock out / Count / Find
 // ---------------------------------------------------------------------
 type Stage = 'pick' | 'choose' | 'qty' | 'confirm' | 'done' | 'show';
-type Source = { kind: 'kitchen' } | { kind: 'po'; po_line_id: string; po_code: string; supplier: string; remaining: number };
+type RealSource = { kind: 'kitchen' } | { kind: 'po'; po_line_id: string; po_code: string; supplier: string; remaining: number };
+type Source = RealSource | { kind: 'test' };
 const REASONS = [
   { id: 'damaged', icon: ICONS.damaged, tone: 'out' },
   { id: 'expired', icon: ICONS.expired, tone: 'warn' },
@@ -259,8 +260,10 @@ function Flow({ action, presetId, presetReason }: { action: Action; presetId?: s
   const [err, setErr] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   const [key, setKey] = useState(() => newKey('inv-' + action));
+  // Testing mode: an extra "skip all checks" way in (no recipe / shelf life / purchase order)
+  const canTest = useTestingMode() && can('warehouse', 'manager');
 
-  const sourcesOf = (d: Detail): Source[] => [
+  const sourcesOf = (d: Detail): RealSource[] => [
     ...(d.kitchen?.can_make ? [{ kind: 'kitchen' as const }] : []),
     ...d.incoming.map((p) => ({ kind: 'po' as const, ...p })),
   ];
@@ -278,7 +281,7 @@ function Flow({ action, presetId, presetReason }: { action: Action; presetId?: s
       else if (action === 'out') setStage(reason ? 'qty' : 'choose');
       else {
         const s = sourcesOf(d);
-        if (s.length === 1) { setSource(s[0]); setStage('qty'); } else { setSource(null); setStage('choose'); }
+        if (s.length === 1 && !canTest) { setSource(s[0]); setStage('qty'); } else { setSource(null); setStage('choose'); }
       }
     } catch (e) { setErr(friendlyError(e)); }
   };
@@ -297,7 +300,9 @@ function Flow({ action, presetId, presetReason }: { action: Action; presetId?: s
     try {
       let r: any;
       if (action === 'in') {
-        r = await backend.rpc('inv_stock_in', { p: { sku_id: item.id, qty: Number(n), source: source!.kind,
+        r = source!.kind === 'test'
+          ? await backend.rpc('test_stock_in', { p: { sku_id: item.id, qty: Number(n), idempotency_key: key } })
+          : await backend.rpc('inv_stock_in', { p: { sku_id: item.id, qty: Number(n), source: source!.kind,
           po_line_id: source!.kind === 'po' ? source!.po_line_id : null, idempotency_key: key } });
       } else if (action === 'out') {
         r = await backend.rpc('inv_stock_out', { p: { sku_id: item.id, batch_id: batch?.id ?? null, qty: Number(n), reason, idempotency_key: key } });
@@ -337,6 +342,12 @@ function Flow({ action, presetId, presetReason }: { action: Action; presetId?: s
           {sourcesOf(item).length === 0 && (
             <div className="blocked"><Icon d={ICONS.wait} size={36} /><p>{item.item_type === 'finished' ? t('cant_make') : t('no_po')}</p></div>
           )}
+          {canTest && (
+            <button type="button" className="btn scan-override bypass-btn" onClick={() => { setSource({ kind: 'test' }); setStage('qty'); }}>
+              <span className="test-tag">TEST</span> {t('test_in')}
+            </button>
+          )}
+          {canTest && <p className="muted small">{t('test_in_hint')}</p>}
         </div>
       )}
 
@@ -352,14 +363,14 @@ function Flow({ action, presetId, presetReason }: { action: Action; presetId?: s
           {action === 'count' && (
             <div className="notice"><strong>{t('count_instr')}</strong><br />{t('count_dont')}</div>
           )}
-          {action === 'in' && source && <div className="muted">{source.kind === 'kitchen' ? t('from_kitchen') : t('delivery_from', { supplier: source.supplier })}</div>}
+          {action === 'in' && source && <div className="muted">{source.kind === 'test' ? <><span className="test-tag">TEST</span> {t('test_in')}</> : source.kind === 'kitchen' ? t('from_kitchen') : t('delivery_from', { supplier: source.supplier })}</div>}
           {action === 'out' && reason && <div className="muted">{t(reason)}</div>}
           <QtyPad value={n} onChange={setN} item={item} t={t} max={maxQty}
             label={action === 'in' ? t('how_many_in') : action === 'out' ? t('how_many_out') : t('how_many_count')} />
           <button type="button" className={`btn btn-big btn-go go-${action}`}
             disabled={n === '' || (action !== 'count' && !(Number(n) > 0)) || (maxQty != null && Number(n) > maxQty)}
             onClick={() => { setErr(null); setStage('confirm'); }}>OK →</button>
-          {action !== 'count' && <button type="button" className="btn btn-ghost" onClick={() => setStage(sourcesOf(item).length === 1 && action === 'in' ? 'pick' : 'choose')}>{t('go_back')}</button>}
+          {action !== 'count' && <button type="button" className="btn btn-ghost" onClick={() => setStage(sourcesOf(item).length === 1 && !canTest && action === 'in' ? 'pick' : 'choose')}>{t('go_back')}</button>}
         </div>
       )}
 

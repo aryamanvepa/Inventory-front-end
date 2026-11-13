@@ -297,6 +297,9 @@ function MakeStep({ line, more, ctx, t, back, onMade, onContinue, forOrder = tru
   const sku = ctx.skus.get(line.sku_id);
   const item = ctx.items.get(line.sku_id);
   const testing = useTestingMode();
+  // Test override: add the made stock without a recipe, ingredients or shelf life
+  const canTest = testing && can('warehouse', 'manager');
+  const [testRun, setTestRun] = useState(false);
 
   useEffect(() => {
     if (!line.recipe) return;
@@ -306,18 +309,8 @@ function MakeStep({ line, more, ctx, t, back, onMade, onContinue, forOrder = tru
 
   const title = line.repack ? t('repack_title', { name: line.name }) : t('make_title', { name: line.name });
 
-  if (!line.recipe) {
-    return (
-      <div className="stack">
-        <h2 className="flow-title">{title}</h2>
-        <div className="blocked"><Icon d={ICONS.wait} size={36} /><p>{t('no_recipe_msg')}</p></div>
-        {can('manager') && <a className="btn btn-big" href="#/production/recipes">{t('add_recipe')}</a>}
-      </div>
-    );
-  }
-
   const mq = Number(makeQty) || 0;
-  const needs = needsFor(line.recipe, mq, ctx.items);
+  const needs = line.recipe ? needsFor(line.recipe, mq, ctx.items) : [];
   const short = needs.filter((n) => n.short > 0);
   const suggested = (id: string): Batch | undefined => mats[id]?.batches.find((b) => !b.expired && !b.on_hold && Number(b.qty) > 0);
   const allTicked = needs.every((n) => ticked[n.material_sku_id]);
@@ -347,7 +340,9 @@ function MakeStep({ line, more, ctx, t, back, onMade, onContinue, forOrder = tru
   const make = async () => {
     setBusy(true); setMsg(null);
     try {
-      const r = await backend.rpc<any>('inv_stock_in', { p: { sku_id: line.sku_id, qty: Number(actual), source: 'kitchen', idempotency_key: key } });
+      const r = testRun
+        ? await backend.rpc<any>('test_stock_in', { p: { sku_id: line.sku_id, qty: Number(actual), idempotency_key: key } })
+        : await backend.rpc<any>('inv_stock_in', { p: { sku_id: line.sku_id, qty: Number(actual), source: 'kitchen', idempotency_key: key } });
       feedback(true); setResult(r); setStage('made'); onMade();
     } catch (e) { feedback(false); setMsg({ ok: false, text: friendlyError(e) }); } finally { setBusy(false); }
   };
@@ -372,7 +367,7 @@ function MakeStep({ line, more, ctx, t, back, onMade, onContinue, forOrder = tru
             go('labels');
           }}><Icon d={ICONS.stickers} size={22} /> {t('print_n', { n: copies })}</button>
         )}
-        <button type="button" className="btn btn-big btn-go go-in" onClick={() => { setStage('list'); setTicked({}); setKey(newKey('make')); onContinue(); }}>
+        <button type="button" className="btn btn-big btn-go go-in" onClick={() => { setStage('list'); setTicked({}); setTestRun(false); setKey(newKey('make')); onContinue(); }}>
           {t('continue')} →
         </button>
       </div>
@@ -386,12 +381,36 @@ function MakeStep({ line, more, ctx, t, back, onMade, onContinue, forOrder = tru
         <h2 className="flow-title">{title}</h2>
         <QtyPad value={actual} onChange={setActual} item={item ?? ({ item_type: 'finished', unit: 'pcs' } as Item)} t={t}
           label={line.repack ? t('how_many_repacked') : t('how_many_made')} />
-        <p className="muted small">{t('materials_auto')}</p>
+        {testRun ? <p className="notice small"><span className="test-tag">TEST</span> {t('test_made_note')}</p> : <p className="muted small">{t('materials_auto')}</p>}
         {msg && <div className={`scan-result ${msg.ok ? 'ok' : 'bad'}`} role="alert">{msg.text}</div>}
         <button type="button" className="btn btn-big btn-go go-in" disabled={busy || !(Number(actual) > 0)} onClick={make}>
           {busy ? t('loading') : t('yes_made', { n: qty(actual || 0) })}
         </button>
-        <button type="button" className="btn btn-big" disabled={busy} onClick={() => setStage('list')}>{t('go_back')}</button>
+        <button type="button" className="btn btn-big" disabled={busy} onClick={() => { setTestRun(false); setStage('list'); }}>{t('go_back')}</button>
+      </div>
+    );
+  }
+
+  const testMake = (n: number) => (
+    <button type="button" className="btn scan-override bypass-btn" disabled={!(n > 0)}
+      onClick={() => { setTestRun(true); setActual(String(n)); setMsg(null); setStage('confirm'); }}>
+      <span className="test-tag">TEST</span> {t('test_make', { n: qty(n) })}
+    </button>
+  );
+
+  if (!line.recipe) {
+    return (
+      <div className="stack">
+        <h2 className="flow-title">{title}</h2>
+        <div className="blocked"><Icon d={ICONS.wait} size={36} /><p>{t('no_recipe_msg')}</p></div>
+        {can('manager') && <a className="btn btn-big" href="#/production/recipes">{t('add_recipe')}</a>}
+        {canTest && (
+          <>
+            <QtyPad value={makeQty} onChange={setMakeQty} item={item ?? ({ item_type: 'finished', unit: 'pcs' } as Item)} t={t}
+              label={line.repack ? t('how_many_to_repack') : t('how_many_to_make')} />
+            {testMake(mq)}
+          </>
+        )}
       </div>
     );
   }
@@ -479,6 +498,7 @@ function MakeStep({ line, more, ctx, t, back, onMade, onContinue, forOrder = tru
           {short.length > 0 ? t('cant_make_short') : allTicked ? (line.repack ? t('repack_now') : t('make_now')) + ' →' : t('tick_all_first')}
         </button>
       ) : <div className="notice">{t('ask_warehouse')}</div>}
+      {canTest && testMake(mq)}
     </div>
   );
 }
