@@ -21,6 +21,7 @@ import { Inventory } from './screens/Inventory';
 import { MakeBoard, MakeForStock, OrderBoard, ProcessOrder } from './screens/Process';
 import { useUpdateAvailable } from './lib/update';
 import { StockAlerts } from './screens/StockAlerts';
+import { DbDock } from './components/DbDock';
 import { useT } from './lib/i18n';
 
 export function App() {
@@ -73,6 +74,11 @@ function Shell() {
   const [a, b, c] = route;
   const updateReady = useUpdateAvailable();
   const { t } = useT();
+  const { can } = useApp();
+  // Live database view for admins: stays open across screens (remembered on this device)
+  const [dock, setDockState] = useState(() => { try { return localStorage.getItem('tl-dbdock') === '1'; } catch { return false; } });
+  const setDock = (v: boolean) => { setDockState(v); try { localStorage.setItem('tl-dbdock', v ? '1' : '0'); } catch { /* ignore */ } };
+  const showDock = dock && can('admin');
 
   let screen: ReactNode;
   switch (a) {
@@ -107,10 +113,16 @@ function Shell() {
   ].filter((t) => t.show);
 
   return (
-    <div className="shell">
+    <div className={`shell ${showDock ? 'has-dock' : ''}`}>
       {backend.mode === 'demo' && <div className="demo-banner">Demo mode · sample data in this browser only</div>}
       {updateReady && <button type="button" className="update-banner" onClick={() => window.location.reload()}>A new version of the app is ready — tap here to update</button>}
       {screen}
+      {can('admin') && !showDock && (
+        <button type="button" className="dbdock-fab" onClick={() => setDock(true)} aria-label="Open the live database view">
+          <span className="dot on" aria-hidden="true" /> Live DB
+        </button>
+      )}
+      {showDock && <DbDock onClose={() => setDock(false)} />}
       <nav className="tabbar" aria-label="Main">
         <div className="tabbar-brand"><Brand /></div>
         {tabs.map((t) => {
