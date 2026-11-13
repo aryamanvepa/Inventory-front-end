@@ -66,7 +66,7 @@ await test('Catalogue: the publishable (anon) key can read it; prices come from 
 
 await test('Catalogue exposes no cost, batch, stock-level or internal fields', async () => {
   const allowed = ['code', 'name', 'product', 'brand', 'brand_code', 'category', 'pack_size', 'pack_unit', 'pack_grams',
-    'mrp', 'price', 'availability', 'only_left', 'max_qty', 'details', 'product_code', 'bestseller_rank', 'is_new', 'images'];
+    'mrp', 'price', 'availability', 'only_left', 'max_qty', 'details', 'product_code', 'bestseller_rank', 'is_new', 'images', 'status'];
   for (const s of await catalogue()) {
     for (const k of Object.keys(s)) assert.ok(allowed.includes(k), `unexpected field ${k}`);
   }
@@ -96,7 +96,7 @@ await test('Availability: in_stock / low (≤ reorder level) / sold_out; a numbe
   await db.query(`update skus set reorder_level = 5 where code = 'NS-000002'`);
 });
 
-await test('Inactive or unpriced SKUs are hidden; a new SKU with a WEB price appears automatically', async () => {
+await test('A new SKU with a WEB price appears automatically (coming soon); a switched-off SKU stays listed as discontinued', async () => {
   const brands = (await rpc(db, 'admin', 'get_reference_data')).brands;
   await rpc(db, 'admin', 'create_product_sku', { p: { brand_id: brands.find((b) => b.code === 'MT').id, product_name: 'Fudge Brownies',
     sku_name: 'Fudge Brownies 6 pcs', pack_size: 6, pack_unit: 'pcs', mrp: 420, website_price: 399, reorder_level: 4 } });
@@ -105,7 +105,10 @@ await test('Inactive or unpriced SKUs are hidden; a new SKU with a WEB price app
   assert.equal(fresh.availability, 'sold_out');
   assert.equal(fresh.max_qty, 0);
   await db.query(`update skus set active = false where code = $1`, [fresh.code]);
-  assert.equal((await catalogue()).some((s) => s.code === fresh.code), false);
+  assert.equal(fresh.status, 'coming_soon');
+  const gone = (await catalogue()).find((s) => s.code === fresh.code);
+  assert.equal(gone.status, 'discontinued');
+  assert.equal(gone.max_qty, 0);
 });
 
 await test('The anon key still cannot touch tables, ingest_order or storefront_quote', async () => {
