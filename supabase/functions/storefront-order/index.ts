@@ -87,7 +87,9 @@ Deno.serve(async (req) => {
       const test = body.test === true;
       const q = await quote(lines.value, null, null, pin, promo, test);
       if (test && !q.testing_mode) return json(403, { ok: false, error: 'test_mode_off' });
-      return json(200, { ok: true, lines: q.lines, problems: q.problems, ...totalsFor(q),
+      // test orders are made to order: only products that don't exist or aren't sold are problems (same rule as place)
+      const problems = test ? q.problems.filter((p) => p.reason === 'unavailable') : q.problems;
+      return json(200, { ok: true, lines: q.lines, problems, ...totalsFor(q),
         promo: q.promo ?? null, delivery: q.delivery ?? null, test,
         shipping_rule: SHIPPING_RULE, payment_mode: PAYMENT_MODE });
     }
