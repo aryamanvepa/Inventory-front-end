@@ -11,6 +11,7 @@ export function More() {
     { href: 'receive', label: 'Receive stock (detailed)', sub: 'Choose batch, manufacturer, location yourself', show: can('warehouse', 'manager') },
     { href: 'transfer', label: 'Transfer stock', sub: 'Between locations, consignment or outright', show: can('warehouse', 'manager') },
     { href: 'labels', label: 'Barcode stickers', sub: 'Product and batch stickers, barcode book', show: can('warehouse', 'manager') },
+    { href: 'promos', label: 'Promo codes', sub: 'Discount codes shoppers enter at checkout', show: can('manager') },
     { href: 'alerts', label: 'Back-in-stock alerts', sub: 'Shoppers waiting for a product (“Notify me” on the website)', show: can('manager') },
     { href: 'inventory/counts', label: 'Stock counts', sub: 'Approve counts that differ from the system', show: can('manager') },
     { href: 'production', label: 'Production', sub: 'Recipes, production runs, ingredients & packaging', show: can('manager', 'warehouse', 'accountant') },

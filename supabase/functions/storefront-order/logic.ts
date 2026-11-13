@@ -34,6 +34,13 @@ export interface PlaceRequest {
   address: { address1: string; address2: string; city: string; state: string; pincode: string };
   notes: string;
   expected_total: number;
+  promo_code: string | null;   // optional promo code, upper-case
+  test: boolean;               // website test order (only accepted while testing mode is on)
+}
+export interface Promo { code: string; valid: boolean; discount: number; message: string; error: string | null }
+export interface Delivery {
+  serviceable: boolean; zone: 'local' | 'national' | null; carrier: string | null;
+  eta_min_days: number | null; eta_max_days: number | null; message: string;
 }
 export interface Quote {
   already_placed: boolean;
@@ -41,6 +48,10 @@ export interface Quote {
   subtotal: number;
   problems: { sku_code: string; name?: string; reason: string; available: number }[];
   recent_orders_for_phone: number;
+  discount?: number;
+  promo?: Promo | null;
+  delivery?: Delivery | null;
+  testing_mode?: boolean;
 }
 
 type Result<T> = { ok: true; value: T } | { ok: false; errors: Record<string, string> };
@@ -49,6 +60,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const SKU = /^[A-Z]{2,4}-\d{6}$/;
 const EMAIL = /^[^\s@<>()[\]\\,;:"]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
 const PINCODE = /^[1-9]\d{5}$/;
+const PROMO = /^[A-Z0-9]{3,20}$/;
 // Control characters are never legitimate in names or addresses.
 // deno-lint-ignore no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f]/;
@@ -118,6 +130,9 @@ export function validatePlaceRequest(body: unknown): Result<PlaceRequest> {
   if (typeof b.expected_total !== 'number' || !Number.isFinite(b.expected_total) || b.expected_total <= 0) {
     errors.expected_total = 'Missing order total';
   }
+  const promo = str(b.promo_code).toUpperCase();
+  if (promo && !PROMO.test(promo)) errors.promo_code = 'Promo codes are letters and numbers only';
+  if (b.test !== undefined && typeof b.test !== 'boolean') errors.test = 'Invalid';
 
   if (Object.keys(errors).length || !lines.ok) return { ok: false, errors };
   return {
@@ -129,6 +144,8 @@ export function validatePlaceRequest(body: unknown): Result<PlaceRequest> {
       address: { address1, address2, city, state: state!, pincode },
       notes,
       expected_total: b.expected_total,
+      promo_code: promo || null,
+      test: b.test === true,
     },
   };
 }
@@ -139,15 +156,22 @@ export const shippingFor = (subtotal: number) => (subtotal > FREE_SHIPPING_ABOVE
 export const externalOrderIdFor = (idempotencyKey: string) =>
   'SF-' + idempotencyKey.replace(/-/g, '').slice(0, 12).toUpperCase();
 
-export function totalsFor(quote: Pick<Quote, 'subtotal'>) {
+/** Shipping is decided on the goods subtotal (before any promo discount). */
+export function totalsFor(quote: Pick<Quote, 'subtotal'> & { discount?: number }) {
   const subtotal = Number(quote.subtotal);
   const shipping = shippingFor(subtotal);
-  return { subtotal, shipping, discount: 0, total: Math.round((subtotal + shipping) * 100) / 100 };
+  const discount = Math.min(Number(quote.discount ?? 0), subtotal);
+  return { subtotal, shipping, discount, total: Math.round((subtotal + shipping - discount) * 100) / 100 };
 }
 
 /** Canonical payload for ingest_order. No unit_price: the database applies the WEB price list. */
-export function buildIngestPayload(req: PlaceRequest, quote: Pick<Quote, 'subtotal'>) {
+export function buildIngestPayload(req: PlaceRequest, quote: Pick<Quote, 'subtotal'> & { discount?: number }) {
   const t = totalsFor(quote);
+  const notes = [
+    req.test ? 'TEST ORDER — placed by the website in testing mode' : '',
+    req.promo_code && t.discount > 0 ? `Promo ${req.promo_code}` : '',
+    req.notes,
+  ].filter(Boolean).join(' · ');
   return {
     external_order_id: externalOrderIdFor(req.idempotency_key),
     channel: 'WEB',
@@ -166,6 +190,32 @@ export function buildIngestPayload(req: PlaceRequest, quote: Pick<Quote, 'subtot
     discount_amount: t.discount,
     total_amount: t.total,
     payment: { status: 'cod', method: 'cod' },
-    notes: req.notes || undefined,
+    notes: notes || undefined,
   };
+}
+
+export const TEST_SOURCE = 'WEB-TEST';
+export type Decision =
+  | { kind: 'reject'; http: number; body: Record<string, unknown> }
+  | { kind: 'ingest'; source: 'storefront' | typeof TEST_SOURCE; payload: ReturnType<typeof buildIngestPayload>; redeemPromo: string | null };
+
+/** What "place" does with a validated request and the database's quote (pure, shared with the tests). */
+export function decidePlace(order: PlaceRequest, q: Quote): Decision {
+  const reject = (http: number, body: Record<string, unknown>): Decision => ({ kind: 'reject', http, body: { ok: false, ...body } });
+  if (order.test && !q.testing_mode) return reject(403, { error: 'test_mode_off' });
+  const source = order.test ? TEST_SOURCE : 'storefront';
+  // A retry of an order already placed: ingest_order returns the existing order untouched.
+  if (q.already_placed) return { kind: 'ingest', source, payload: buildIngestPayload(order, { subtotal: 0 }), redeemPromo: null };
+  // Test orders are made to order: only products that don't exist or aren't sold block them.
+  const blocking = order.test ? q.problems.filter((p) => p.reason === 'unavailable') : q.problems;
+  if (blocking.length) return reject(409, { error: 'sold_out', problems: blocking });
+  if (q.delivery && !q.delivery.serviceable) return reject(422, { error: 'unserviceable_pincode', delivery: q.delivery });
+  if (order.promo_code && !q.promo?.valid) return reject(409, { error: q.promo?.error ?? 'promo_invalid', promo: q.promo ?? null });
+  if (!order.test && q.recent_orders_for_phone >= MAX_ORDERS_PER_PHONE_PER_DAY) return reject(429, { error: 'too_many_orders' });
+  const t = totalsFor(q);
+  // The shopper must have seen the price we are about to charge.
+  if (Math.abs(t.total - order.expected_total) > 0.005) {
+    return reject(409, { error: 'price_changed', lines: q.lines, ...t, shipping_rule: { flat: SHIPPING_FLAT, free_above: FREE_SHIPPING_ABOVE } });
+  }
+  return { kind: 'ingest', source, payload: buildIngestPayload(order, q), redeemPromo: order.promo_code && q.promo?.valid ? order.promo_code : null };
 }

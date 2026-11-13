@@ -22,6 +22,7 @@ import { MakeBoard, MakeForStock, OrderBoard, ProcessOrder } from './screens/Pro
 import { useUpdateAvailable } from './lib/update';
 import { StockAlerts } from './screens/StockAlerts';
 import { DbDock } from './components/DbDock';
+import { Promos } from './screens/Promos';
 import { useT } from './lib/i18n';
 
 export function App() {
@@ -95,6 +96,7 @@ function Shell() {
     case 'more': screen = <More />; break;
     case 'home': screen = <Home />; break;
     case 'alerts': screen = <StockAlerts />; break;
+    case 'promos': screen = <Promos />; break;
     case 'work': screen = b ? <ProcessOrder key={b} orderId={b} /> : <OrderBoard />; break;
     case 'make': screen = b ? <MakeForStock key={b} skuId={b} /> : <MakeBoard />; break;
     case 'accounts': screen = <Accounts section={b} />; break;
@@ -109,7 +111,7 @@ function Shell() {
     { id: 'work', label: t('orders'), icon: 'M6 4h12v16H6zM9 8h6M9 12h6M9 16h4', show: true, also: ['', 'work', 'pack', 'dispatch', 'orders'] },
     { id: 'make', label: t('tab_process'), icon: 'M7 14h10v6H7zM6.5 14A4 4 0 017 6.1a5 5 0 019.9.1A4 4 0 0117.5 14', show: true, also: ['make', 'production'] },
     { id: 'inventory', label: t('tab_inventory'), icon: 'M4 5h16v4H4zM5 9v10h14V9M10 13h4', show: true, also: ['inventory', 'stock', 'labels', 'receive', 'transfer'] },
-    { id: 'more', label: t('tab_more'), icon: 'M5 12h.01M12 12h.01M19 12h.01', show: true, also: ['more', 'alerts', 'admin', 'accounts', 'invoice', 'purchasing', 'dashboard', 'home'] },
+    { id: 'more', label: t('tab_more'), icon: 'M5 12h.01M12 12h.01M19 12h.01', show: true, also: ['more', 'alerts', 'promos', 'admin', 'accounts', 'invoice', 'purchasing', 'dashboard', 'home'] },
   ].filter((t) => t.show);
 
   return (

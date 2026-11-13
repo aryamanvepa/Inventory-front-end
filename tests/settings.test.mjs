@@ -16,7 +16,7 @@ const db = await bootDb();
 console.log('\nTorte Living OS — app settings\n');
 
 await test('Testing mode starts on, every staff member can read it, and the dashboard says so', async () => {
-  assert.deepEqual(await rpc(db, 'packer', 'get_app_settings'), { testing_mode: true });
+  assert.equal((await rpc(db, 'packer', 'get_app_settings')).testing_mode, true);
   const d = await rpc(db, 'admin', 'get_dashboard', { p_days: 30 });
   assert.ok(d.alerts.some((a) => a.type === 'testing_mode'));
 });
@@ -25,7 +25,7 @@ await test('Only an admin can switch it; the public key cannot read it', async (
   await rejects(rpc(db, 'anon', 'get_app_settings'), /permission denied/);
   await rejects(rpc(db, 'admin', 'set_app_setting', { p_key: 'testing_mode', p_value: '"yes"' }), /on or off/);
   await rejects(rpc(db, 'admin', 'set_app_setting', { p_key: 'anything', p_value: true }), /check constraint|violates/);
-  assert.deepEqual(await rpc(db, 'admin', 'set_app_setting', { p_key: 'testing_mode', p_value: false }), { testing_mode: false });
+  assert.equal((await rpc(db, 'admin', 'set_app_setting', { p_key: 'testing_mode', p_value: false })).testing_mode, false);
   const d = await rpc(db, 'admin', 'get_dashboard', { p_days: 30 });
   assert.ok(!d.alerts.some((a) => a.type === 'testing_mode'));
 });

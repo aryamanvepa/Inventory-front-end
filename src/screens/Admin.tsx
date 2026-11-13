@@ -345,6 +345,8 @@ function ProductEditor({ productId, refData, onClose, onSaved }: { productId: st
             </div>
           </Field>
 
+          {d.item_type === 'finished' && <ProductPhotos code={d.code} />}
+
           <h3 className="group-title">Packs</h3>
           {d.skus.map((s: any) => (
             <Card key={s.id}>
@@ -365,5 +367,73 @@ function ProductEditor({ productId, refData, onClose, onSaved }: { productId: st
         </div>
       )}
     </Sheet>
+  );
+}
+
+// Product photos in Supabase Storage: <product code>/<n>.<ext>, n = 1 is the main photo on the website
+function ProductPhotos({ code }: { code: string }) {
+  const { backend, can, toast } = useApp();
+  const [list, setList] = useState<{ path: string; url: string; n: number | null }[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const live = !!backend.uploadFile;
+  const bucket = 'product-images';
+  const load = async () => { try { setList(await backend.rpc('list_product_images', { p_product_code: code })); } catch (e) { toast(e instanceof Error ? e.message : String(e), 'error'); } };
+  useEffect(() => { load(); }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ext = (path: string) => path.split('.').pop() ?? 'jpg';
+  const act = async (fn: () => Promise<void>, ok: string) => {
+    setBusy(true);
+    try { await fn(); toast(ok); } catch (e) { toast(e instanceof Error ? e.message : String(e), 'error'); }
+    finally { setBusy(false); load(); }
+  };
+  const add = (files: FileList | null) => act(async () => {
+    let next = Math.max(0, ...(list ?? []).map((x) => x.n ?? 0)) + 1;
+    for (const f of Array.from(files ?? [])) {
+      if (!['image/jpeg', 'image/webp', 'image/png'].includes(f.type)) throw new Error(`${f.name}: use a JPG, WebP or PNG photo`);
+      if (f.size > 5 * 1024 * 1024) throw new Error(`${f.name}: photos must be under 5 MB`);
+      const e = f.type === 'image/png' ? 'png' : f.type === 'image/webp' ? 'webp' : 'jpg';
+      await backend.uploadFile!(bucket, `${code}/${next}.${e}`, f);
+      next++;
+    }
+  }, 'Photo added');
+  // swap a photo into position 1 (the main photo)
+  const makeMain = (p: { path: string; n: number | null }) => act(async () => {
+    const main = (list ?? []).find((x) => x.n === 1);
+    const tmp = `${code}/tmp-${Date.now()}.${ext(p.path)}`;
+    await backend.moveFile!(bucket, p.path, tmp);
+    if (main) await backend.moveFile!(bucket, main.path, `${code}/${p.n}.${ext(main.path)}`);
+    await backend.moveFile!(bucket, tmp, `${code}/1.${ext(p.path)}`);
+  }, 'Main photo changed');
+  const remove = (p: { path: string }) => {
+    if (!window.confirm('Delete this photo from the website?')) return;
+    act(() => backend.removeFiles!(bucket, [p.path]), 'Photo deleted');
+  };
+
+  return (
+    <div className="stack">
+      <h3 className="group-title">Photos (shown on the website)</h3>
+      {!live && <p className="muted small">Photos are stored in Supabase, so they can be added on the live system only (not in demo mode).</p>}
+      {list && list.length === 0 && <p className="muted small">No photos yet — the website shows an illustration.</p>}
+      <div className="photo-grid">
+        {list?.map((p) => (
+          <figure key={p.path} className="photo">
+            <img src={p.url} alt="" loading="lazy" />
+            <figcaption className="small">{p.n === 1 ? <strong>Main photo</strong> : `Photo ${p.n ?? ''}`}</figcaption>
+            {live && can('manager') && (
+              <div className="row-gap">
+                {p.n !== 1 && <button type="button" className="btn btn-small" disabled={busy} onClick={() => makeMain(p)}>Make main</button>}
+                <button type="button" className="btn btn-small btn-ghost" disabled={busy} onClick={() => remove(p)}>Delete</button>
+              </div>
+            )}
+          </figure>
+        ))}
+      </div>
+      {live && can('manager') && (
+        <label className="btn">
+          {busy ? 'Uploading…' : '+ Add photos'}
+          <input type="file" accept="image/jpeg,image/webp,image/png" multiple hidden disabled={busy} onChange={(e) => { add(e.target.files); e.target.value = ''; }} />
+        </label>
+      )}
+      <p className="muted small">JPG, WebP or PNG, under 5 MB, ideally square (1200 × 1200). The first photo is the main one.</p>
+    </div>
   );
 }

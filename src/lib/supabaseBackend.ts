@@ -35,5 +35,17 @@ export function createSupabaseBackend(url: string, anonKey: string): Backend {
     async signOut() {
       await client.auth.signOut();
     },
+    async uploadFile(bucket, path, file) {
+      const { error } = await client.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false, cacheControl: '3600' });
+      if (error) throw new Error(error.message);
+    },
+    async moveFile(bucket, from, to) {
+      const { error } = await client.storage.from(bucket).move(from, to);
+      if (error) throw new Error(error.message);
+    },
+    async removeFiles(bucket, paths) {
+      const { error } = await client.storage.from(bucket).remove(paths);
+      if (error) throw new Error(error.message);
+    },
   };
 }

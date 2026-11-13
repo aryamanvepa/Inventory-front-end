@@ -66,7 +66,7 @@ await test('Catalogue: the publishable (anon) key can read it; prices come from 
 
 await test('Catalogue exposes no cost, batch, stock-level or internal fields', async () => {
   const allowed = ['code', 'name', 'product', 'brand', 'brand_code', 'category', 'pack_size', 'pack_unit', 'pack_grams',
-    'mrp', 'price', 'availability', 'only_left', 'max_qty', 'details'];
+    'mrp', 'price', 'availability', 'only_left', 'max_qty', 'details', 'product_code', 'bestseller_rank', 'is_new', 'images'];
   for (const s of await catalogue()) {
     for (const k of Object.keys(s)) assert.ok(allowed.includes(k), `unexpected field ${k}`);
   }
@@ -225,12 +225,17 @@ await test('Quote flags unknown SKUs and counts recent orders for a phone (abuse
   assert.equal(q.recent_orders_for_phone, 2);
 });
 
-await test('Order tracking: code + phone gives status and items only; wrong phone reveals nothing', async () => {
+await test('Order tracking: code + phone gives the shopper\'s own order (no internal fields); wrong phone reveals nothing', async () => {
   const s = await rpc(db, 'anon', 'storefront_order_status', { p_order_code: placed.order_code.toLowerCase(), p_phone: '98480 12345' });
   assert.equal(s.found, true);
   assert.equal(s.status, 'confirmed');
   assert.deepEqual(s.items.map((i) => [i.sku_code, Number(i.qty)]), [['MT-000001', 2], ['NS-000001', 1]]);
-  for (const k of Object.keys(s)) assert.ok(['found', 'code', 'status', 'placed_on', 'items'].includes(k), `unexpected ${k}`);
+  for (const k of Object.keys(s)) assert.ok(['found', 'code', 'status', 'placed_on', 'items', 'total', 'payment_status', 'payment_method',
+    'timeline', 'shipment', 'cancellable', 'cancel_requested', 'refund'].includes(k), `unexpected ${k}`);
+  assert.equal(s.payment_method, 'cod');
+  assert.equal(s.cancellable, true);
+  assert.equal(s.shipment, null);
+  assert.ok(s.timeline.placed_at);
   assert.deepEqual(await rpc(db, 'anon', 'storefront_order_status', { p_order_code: placed.order_code, p_phone: '9000000000' }), { found: false });
   assert.deepEqual(await rpc(db, 'anon', 'storefront_order_status', { p_order_code: 'ORD-1999-000001', p_phone: '9848012345' }), { found: false });
   assert.deepEqual(await rpc(db, 'anon', 'storefront_order_status', { p_order_code: placed.order_code, p_phone: '' }), { found: false });

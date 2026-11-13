@@ -25,6 +25,10 @@ export interface Backend {
   signIn(email: string, password: string): Promise<void>;
   signUp(email: string, password: string): Promise<string>;
   signOut(): Promise<void>;
+  // File storage (live only): product photos go to the public "product-images" bucket
+  uploadFile?(bucket: string, path: string, file: File): Promise<void>;
+  moveFile?(bucket: string, from: string, to: string): Promise<void>;
+  removeFiles?(bucket: string, paths: string[]): Promise<void>;
   demoUsers?: DemoUser[];
   signInDemo?(id: string): Promise<void>;
   resetDemo?(): Promise<void>;

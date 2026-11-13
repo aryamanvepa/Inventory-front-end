@@ -571,3 +571,6 @@ img, svg, video { max-width: 100%; }
   .dbdock-fab { bottom: 18px; }
 }
 @media print { .dbdock, .dbdock-fab { display: none !important; } }
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.photo { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.photo img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); }
