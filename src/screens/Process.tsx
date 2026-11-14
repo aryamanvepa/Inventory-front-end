@@ -4,7 +4,7 @@
 // the operator through only the steps that order needs, with a step bar at
 // the bottom of the screen showing where they are.
 //
-// Mia Torte products are MADE from raw materials (recipe); Nutri Sampoorna
+// Mia Torte products are MADE from raw materials (recipe); Nutri Sampoorn
 // products are REPACKED from bulk material (a one-line "recipe", e.g.
 // 1 kg pouch = 1 kg bulk atta + 1 pouch). Both use the same production run.
 import { useCallback, useEffect, useState } from 'react';
@@ -279,7 +279,7 @@ function StepBar({ steps, current, t, repack }: { steps: Step[]; current: Step; 
 }
 
 // ---------------------------------------------------------------------
-// Make (Mia Torte) / Repack (Nutri Sampoorna)
+// Make (Mia Torte) / Repack (Nutri Sampoorn)
 // ---------------------------------------------------------------------
 function MakeStep({ line, more, ctx, t, back, onMade, onContinue, forOrder = true }: {
   line: ShortLine; more: number; ctx: Ctx; t: T; back: string; onMade(): void; onContinue(): void; forOrder?: boolean;

@@ -1,7 +1,7 @@
 {
   "name": "Torte Living Operations",
   "short_name": "TL Ops",
-  "description": "Packing, stock and dispatch for Mia Torte and Nutri Sampoorna",
+  "description": "Packing, stock and dispatch for Mia Torte and Nutri Sampoorn",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

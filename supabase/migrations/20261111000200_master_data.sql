@@ -8,7 +8,7 @@
 -- ---------------------------------------------------------------------
 -- Legal entity & brands
 -- Torte Living Pvt Limited is the legal entity (GST, statutory books);
--- Mia Torte and Nutri Sampoorna are brands under it.
+-- Mia Torte and Nutri Sampoorn are brands under it.
 -- ---------------------------------------------------------------------
 create table legal_entities (
   id                 uuid primary key default gen_random_uuid(),

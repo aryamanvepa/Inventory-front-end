@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Product catalogue from "Product List for Website.xlsx" (2026-11-12)
--- 60 SKUs: Nutri Sampoorna 17, Mia Torte 43 (incl. 8 cookies).
+-- 60 SKUs: Nutri Sampoorn 17, Mia Torte 43 (incl. 8 cookies).
 -- Generated from the spreadsheet by a script; safe to run more than once.
 --
 --  * MRP: as in the sheet; where the sheet has none (Mia Torte muesli and

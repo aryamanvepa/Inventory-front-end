@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Pilot sample data (for a TEST project only — not real products/prices)
---   3 products: 1 Mia Torte, 2 Nutri Sampoorna variants
+--   3 products: 1 Mia Torte, 2 Nutri Sampoorn variants
 --   batches, opening stock, 1 sample contract manufacturer,
 --   1 sample distributor, 2 customers and 10 test orders
 -- Replace with the real catalogue before go-live.

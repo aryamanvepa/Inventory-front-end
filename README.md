@@ -1,6 +1,6 @@
 # Torte Living Business Operating System — Pilot
 
-The first working slice of the Mia Torte & Nutri Sampoorna operating system, built to the
+The first working slice of the Mia Torte & Nutri Sampoorn operating system, built to the
 requirements document. It has two parts:
 
 1. **Supabase database** (`supabase/`): the single source of truth. It holds products, stock, orders and the
@@ -23,7 +23,7 @@ npm test           # 24 automated acceptance tests against the real SQL
 
 | Spec item | Where |
 |---|---|
-| Torte Living Pvt Ltd as the legal entity, with Mia Torte and Nutri Sampoorna as brands | `legal_entities`, `brands` |
+| Torte Living Pvt Ltd as the legal entity, with Mia Torte and Nutri Sampoorn as brands | `legal_entities`, `brands` |
 | Internal UUIDs plus database-generated codes (MT-000001, NS-000001, CUS-, BAT-2026-, ORD-2026-, SO-, SHP-, PAY-, TRF-, GRN-, ADJ-, DST-, RTL-, SUP-, MFR-, LOC-) | `next_code()` + triggers |
 | Product / SKU / GTIN / category / HSN-GST / price lists with effective dates (no single price on the SKU) | migration 0002 |
 | Customers deduplicated by website ID, email or phone. Marketing consent stored separately | `customers`, `customer_consents` |

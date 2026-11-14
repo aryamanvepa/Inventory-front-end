@@ -3,7 +3,7 @@
 -- pushed to Supabase, never used by the tests). Sample raw materials,
 -- recipes and three orders so every Process case can be tried:
 --   * Mia Torte cookies order  -> Make first (materials in stock)
---   * Nutri Sampoorna atta order -> Repack first (bulk atta in stock)
+--   * Nutri Sampoorn atta order -> Repack first (bulk atta in stock)
 --   * Mia Torte biscotti order -> Raw material out (almonds short)
 -- =====================================================================
 select set_config('request.jwt.claims', '{"role":"service_role"}', false);
@@ -44,7 +44,7 @@ select post_stock_txn('goods_receipt', jsonb_build_array(jsonb_build_object(
        'Opening balance (demo materials)', 'batch', b.id, 'demo:' || b.id, true, false)
   from batches b join skus s on s.id = b.sku_id join products p on p.id = s.product_id where p.item_type <> 'finished';
 
--- Recipes: Mia Torte is cooked; Nutri Sampoorna is repacked from the bulk sack
+-- Recipes: Mia Torte is cooked; Nutri Sampoorn is repacked from the bulk sack
 insert into recipes (sku_id, version, output_qty, notes)
 select id, 1, case name when 'Chocolate Chip Cookies 200 g' then 20 when 'Almond Biscotti 150 g' then 20 else 1 end,
        case when name like 'Multigrain%' then 'Repack from bulk atta' else 'Demo recipe' end
