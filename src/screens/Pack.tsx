@@ -219,8 +219,9 @@ export function PackPanel({ order: o, setOrder, t, onPacked }: { order: any; set
               <strong>{fifoWarn.text}</strong>
               <div className="row-gap">
                 <button type="button" className="btn btn-small" onClick={() => setFifoWarn(null)}>{t('ok_take_older')}</button>
-                <button type="button" className="btn btn-ghost btn-small" onClick={() => scan(fifoWarn.code, fifoWarn.batchCode, fifoWarn.manual, true)}>{t('use_anyway')}</button>
               </div>
+              {/* The database refuses the newer batch too (first expiry, first out), so there is no "use anyway". */}
+              <span className="small muted">{t('fifo_cant_find')}</span>
             </div>
           )}
           {needBatch ? (

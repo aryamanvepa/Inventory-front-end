@@ -162,7 +162,9 @@ await test('Recipes are versioned; production consumes materials (oldest expiry 
     consumptions: [{ material_sku_id: BUTTER.sku_id, qty: 25 }] } }), /Not enough material.*butter/i);
 
   const done = await rpc(db, 'warehouse', 'complete_production', { p: { production_order_id: PRD.production_order_id, output_qty: 38,
-    conversion_cost: 380, idempotency_key: 'prd-1' } });
+    conversion_cost: 380, idempotency_key: 'prd-1',
+    // short-dated, so first-expiry-first-out lets it ship ahead of the older seed batches below
+    expires_on: (await one(`select (today_ist() + 30)::text d`)).d } });
   NEWBATCH = done.batch_code;
   const o = done.order;
   // standard for 38 packs: flour 3.99 kg, butter 1.52 kg, boxes 38
