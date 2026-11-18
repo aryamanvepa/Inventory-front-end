@@ -2,9 +2,9 @@
 -- DEMO MODE ONLY (loaded by the in-browser demo after seed.sql; never
 -- pushed to Supabase, never used by the tests). Sample raw materials,
 -- recipes and three orders so every Process case can be tried:
---   * Mia Torte cookies order  -> Make first (materials in stock)
+--   * La Mia Torte cookies order  -> Make first (materials in stock)
 --   * Nutri Sampoorn atta order -> Repack first (bulk atta in stock)
---   * Mia Torte biscotti order -> Raw material out (almonds short)
+--   * La Mia Torte biscotti order -> Raw material out (almonds short)
 -- =====================================================================
 select set_config('request.jwt.claims', '{"role":"service_role"}', false);
 
@@ -17,7 +17,7 @@ insert into products (brand_id, name, item_type, shelf_life_days) values
 insert into skus (product_id, name, pack_size, pack_unit, reorder_level)
 select id, name, 1, case when item_type = 'packaging' then 'pcs' else 'kg' end, 0 from products where item_type <> 'finished';
 
--- A second Mia Torte product, with no stock yet
+-- A second La Mia Torte product, with no stock yet
 insert into products (brand_id, category_id, name, tax_rate_id, shelf_life_days)
 select (select id from brands where code = 'MT'), (select id from categories where name = 'Cookies'),
        'Almond Biscotti', (select id from tax_rates where hsn_code = '1905'), 60;
@@ -44,7 +44,7 @@ select post_stock_txn('goods_receipt', jsonb_build_array(jsonb_build_object(
        'Opening balance (demo materials)', 'batch', b.id, 'demo:' || b.id, true, false)
   from batches b join skus s on s.id = b.sku_id join products p on p.id = s.product_id where p.item_type <> 'finished';
 
--- Recipes: Mia Torte is cooked; Nutri Sampoorn is repacked from the bulk sack
+-- Recipes: La Mia Torte is cooked; Nutri Sampoorn is repacked from the bulk sack
 insert into recipes (sku_id, version, output_qty, notes)
 select id, 1, case name when 'Chocolate Chip Cookies 200 g' then 20 when 'Almond Biscotti 150 g' then 20 else 1 end,
        case when name like 'Multigrain%' then 'Repack from bulk atta' else 'Demo recipe' end

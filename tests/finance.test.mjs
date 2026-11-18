@@ -313,7 +313,7 @@ await test('Reports: P&L, balance sheet, GST summary and MIS agree with the tran
   const cnTaxable = Number((await one(`select coalesce(sum(taxable_value), 0) t from credit_notes`)).t);
   assert.equal(n2(pnl.revenue), n2(invoiceTaxable - cnTaxable));
   assert.equal(n2(pnl.gross_profit), n2(Number(pnl.revenue) - Number(pnl.cost_of_sales)));
-  assert.ok(pnl.by_brand.some((b) => b.brand === 'Mia Torte'));
+  assert.ok(pnl.by_brand.some((b) => b.brand === 'La Mia Torte'));
   assert.ok(pnl.by_channel.length >= 1);
   const gst = await rpc(db, 'accountant', 'gst_summary', { p_from: from, p_to: to });
   const outTax = gst.outward_by_rate.reduce((t, r) => t + Number(r.cgst) + Number(r.sgst) + Number(r.igst), 0);
@@ -328,7 +328,7 @@ await test('Reports: P&L, balance sheet, GST summary and MIS agree with the tran
   assert.equal(mis.company_gst_set, true);
   assert.equal(Number(mis.overheads.absorbed), 380, 'overheads absorbed into batch cost');
   assert.equal(Number(mis.overheads.actual), 0, 'no actual overhead bills recorded');
-  const mt = pnl.by_brand.find((b) => b.brand === 'Mia Torte');
+  const mt = pnl.by_brand.find((b) => b.brand === 'La Mia Torte');
   assert.ok(Number(mt.cogs) > 0 && Number(mt.gross_margin_pct) < 100, 'brand margin uses cost of goods sold only');
   const st = await rpc(db, 'accountant', 'account_statement', { p_account: 'receivables', p_from: from, p_to: to });
   assert.equal(n2(st.closing), await accountBal('receivables'));

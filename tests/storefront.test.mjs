@@ -54,7 +54,7 @@ console.log('\nStorefront — tests\n');
 await test('Catalogue: the publishable (anon) key can read it; prices come from the WEB price list', async () => {
   const c = await catalogue();
   const cookies = c.find((s) => s.code === 'MT-000001');
-  assert.equal(cookies.brand, 'Mia Torte');
+  assert.equal(cookies.brand, 'La Mia Torte');
   assert.equal(cookies.category, 'Cookies');
   assert.equal(Number(cookies.mrp), 250);
   assert.equal(Number(cookies.price), 225);

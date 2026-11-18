@@ -1,5 +1,5 @@
 -- =====================================================================
--- Migration 0008 — Customer storefront (Mia Torte / Nutri Sampoorn shop)
+-- Migration 0008 — Customer storefront (La Mia Torte / Nutri Sampoorn shop)
 --
 -- Three read-only functions; orders still enter only through ingest_order.
 --
