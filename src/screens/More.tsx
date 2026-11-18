@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../lib/app';
 import { Page } from '../components/ui';
 
@@ -27,6 +27,7 @@ export function More() {
         {items.map((i) => <li key={i.href}><a href={`#/${i.href}`}><strong>{i.label}</strong><span>{i.sub}</span></a></li>)}
       </ul>
       {can('manager') && <TestingTools />}
+      {can('manager') && <PaymentHold />}
       <div className="card">
         <div><strong>{profile.full_name}</strong></div>
         <div className="muted small">Role: {profile.role}{backend.mode === 'demo' ? ' · demo mode' : ''}</div>
@@ -57,6 +58,41 @@ function TestingTools() {
           finally { setBusy(false); }
         }}>{on ? 'Turn testing mode off' : 'Turn testing mode on'}</button>
       ) : <span className="muted small">Only an admin can switch it.</span>}
+    </div>
+  );
+}
+
+// How long an order waiting for an online payment keeps its stock (admin only)
+function PaymentHold() {
+  const { settings, reloadSettings, can, backend, toast } = useApp();
+  const current = Number(settings.unpaid_hold_minutes ?? 30);
+  const [mins, setMins] = useState(String(current));
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { setMins(String(current)); }, [current]);   // settings load after the screen
+  const changed = mins.trim() !== String(current);
+  return (
+    <div className="card">
+      <strong>Online payment hold</strong>
+      <span className="small">An order waiting for an online payment keeps its stock for <strong>{current} minutes</strong>. After that,
+        other shoppers can buy the stock. If the payment still arrives, the order takes stock again or waits for it.
+        Cash-on-delivery orders always keep their stock.</span>
+      {can('admin') ? (
+        <form className="row-gap" onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          try {
+            await backend.rpc('set_app_setting', { p_key: 'unpaid_hold_minutes', p_value: Number(mins) });
+            await reloadSettings();
+            toast(`Payment hold set to ${Number(mins)} minutes`);
+          } catch (err) { toast(err instanceof Error ? err.message : String(err), 'error'); }
+          finally { setBusy(false); }
+        }}>
+          <label className="small" htmlFor="hold-mins">Minutes (5–1440)</label>
+          <input id="hold-mins" type="number" inputMode="numeric" min={5} max={1440} step={1} value={mins}
+            onChange={(e) => setMins(e.target.value)} style={{ width: '7em' }} />
+          <button type="submit" className="btn" disabled={busy || !changed}>{busy ? 'Saving…' : 'Save'}</button>
+        </form>
+      ) : <span className="muted small">Only an admin can change it.</span>}
     </div>
   );
 }

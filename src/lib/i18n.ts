@@ -83,7 +83,7 @@ const en = {
   nothing_to_make: 'Nothing to make — every order has stock.', no_recipes_yet: 'No recipes yet. A manager adds them under More → Production.',
   short_for_orders: '{n} short · for {orders}', orders_need: 'Waiting orders need {n} · one batch makes {per}', per_batch: 'One batch makes {per}',
   // Packing
-  fifo_warn: 'Take the older batch first: {code} (best before {date})', ok_take_older: 'OK, I\'ll take the older one', use_anyway: 'Use this one anyway', fifo_cant_find: 'Can\'t find the older batch? Ask a manager to count it, then scan again.',
+  fifo_warn: 'Take the older batch first: {code} (best before {date})', ok_take_older: 'OK, I\'ll take the older one', fifo_cant_find: 'Can\'t find the older batch? Ask a manager to count it, then scan again.',
   wait_stock: 'This order is waiting for stock — do not pack.', not_paid: 'Not paid yet — do not pack or send.',
   scanned_of: '{n} of {total} items scanned', take_from: 'Take from {code} · best before {date}',
   scan_batch_label: 'Now scan the batch label for {name}', no_label_pick: 'No label? Pick the batch printed on the pack:',
@@ -170,7 +170,7 @@ const hi: Partial<Record<Key, string>> = {
   step_repack: 'रीपैक', for_orders: 'ऑर्डर के लिए चाहिए', for_stock: 'स्टॉक के लिए बनाएँ या रीपैक करें',
   nothing_to_make: 'कुछ नहीं बनाना — हर ऑर्डर का स्टॉक है।', no_recipes_yet: 'अभी कोई रेसिपी नहीं। मैनेजर More → Production में डालते हैं।',
   short_for_orders: '{n} कम · {orders} के लिए', orders_need: 'बाकी ऑर्डर को {n} चाहिए · एक बैच में {per} बनते हैं', per_batch: 'एक बैच में {per} बनते हैं',
-  fifo_warn: 'पहले पुराना बैच लें: {code} ({date} से पहले इस्तेमाल करें)', ok_take_older: 'ठीक है, पुराना लूँगा', use_anyway: 'फिर भी यही लें', fifo_cant_find: 'पुराना बैच नहीं मिल रहा? मैनेजर से उसकी गिनती करवाएँ, फिर दोबारा स्कैन करें।',
+  fifo_warn: 'पहले पुराना बैच लें: {code} ({date} से पहले इस्तेमाल करें)', ok_take_older: 'ठीक है, पुराना लूँगा', fifo_cant_find: 'पुराना बैच नहीं मिल रहा? मैनेजर से उसकी गिनती करवाएँ, फिर दोबारा स्कैन करें।',
   wait_stock: 'यह ऑर्डर स्टॉक का इंतज़ार कर रहा है — पैक न करें।', not_paid: 'पेमेंट नहीं हुआ — न पैक करें, न भेजें।',
   scanned_of: '{total} में से {n} स्कैन हुए', take_from: '{code} से लें · {date} से पहले',
   scan_batch_label: 'अब {name} का बैच लेबल स्कैन करें', no_label_pick: 'लेबल नहीं? पैकेट पर छपा बैच चुनें:',

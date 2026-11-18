@@ -12,7 +12,7 @@ interface AppCtx {
   go(path: string): void;
   toast(text: string, kind?: ToastKind): void;
   can(...roles: Role[]): boolean;
-  settings: { testing_mode?: boolean };
+  settings: { testing_mode?: boolean; unpaid_hold_minutes?: number };
   reloadSettings(): Promise<void>;
 }
 

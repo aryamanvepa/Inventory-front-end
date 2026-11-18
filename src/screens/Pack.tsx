@@ -93,7 +93,7 @@ export function PackPanel({ order: o, setOrder, t, onPacked }: { order: any; set
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<{ ok: boolean; text: string } | null>(null);
   const [needBatch, setNeedBatch] = useState<{ code: string; sku: any; batches: any[] } | null>(null);
-  const [fifoWarn, setFifoWarn] = useState<{ code: string; batchCode?: string; manual: boolean; text: string } | null>(null);
+  const [fifoWarn, setFifoWarn] = useState<{ text: string } | null>(null);
   const [shelf, setShelf] = useState<Record<string, Batch[]>>({});
   const [showLog, setShowLog] = useState(false);
   const orderId = o.id;
@@ -112,22 +112,23 @@ export function PackPanel({ order: o, setOrder, t, onPacked }: { order: any; set
   const queue = useRef<Promise<void>>(Promise.resolve());
   const needBatchRef = useRef(needBatch);
   needBatchRef.current = needBatch;
-  const scan = (code: string, batchCode?: string, manual = false, override = false) => {
-    queue.current = queue.current.then(() => doScan(code, batchCode, manual, override));
+  const scan = (code: string, batchCode?: string, manual = false) => {
+    queue.current = queue.current.then(() => doScan(code, batchCode, manual));
   };
-  const doScan = async (code: string, batchCode?: string, manual = false, override = false) => {
+  const doScan = async (code: string, batchCode?: string, manual = false) => {
     setBusy(true);
     const pending = needBatchRef.current;
     try {
       const product = pending && !batchCode ? pending.code : code;
       const batch = pending && !batchCode ? code : batchCode;
-      // first in, first out: warn before a newer batch goes out while an older one is on the shelf
-      if (!override) {
+      // first expiry, first out: say which batch to take before a newer one is scanned
+      // (the database refuses the newer batch as well)
+      {
         const r = await backend.rpc<any>('resolve_scan', { p_code: batch ?? product });
         const s = r.kind === 'batch' ? sugRef.current[r.sku.id] : null;
         if (s && r.batch.code !== s.code && s.expires_on && r.batch.expires_on > s.expires_on) {
           feedback(false);
-          setFifoWarn({ code, batchCode, manual, text: t('fifo_warn', { code: s.code, date: date(s.expires_on) }) });
+          setFifoWarn({ text: t('fifo_warn', { code: s.code, date: date(s.expires_on) }) });
           return;
         }
       }
@@ -220,7 +221,6 @@ export function PackPanel({ order: o, setOrder, t, onPacked }: { order: any; set
               <div className="row-gap">
                 <button type="button" className="btn btn-small" onClick={() => setFifoWarn(null)}>{t('ok_take_older')}</button>
               </div>
-              {/* The database refuses the newer batch too (first expiry, first out), so there is no "use anyway". */}
               <span className="small muted">{t('fifo_cant_find')}</span>
             </div>
           )}

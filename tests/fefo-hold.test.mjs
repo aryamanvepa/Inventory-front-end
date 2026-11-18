@@ -182,6 +182,37 @@ await test('Cash-on-delivery orders keep their stock however long they wait', as
   assert.equal(Number((await one(`select count(*) c from stock_reservations where order_id = $1 and status = 'active'`, [cod])).c), 1);
 });
 
+await test('A lapsed hold is not shown as stock promised to the order', async () => {
+  await freshItem();
+  await batch('2028-02-29', 3);
+  const id = await order(2, { status: 'pending' });
+  let stock = await rpc(db, 'warehouse', 'get_sku_stock', { p_sku_id: sku.id });
+  assert.equal(stock.reservations.length, 1);
+  assert.equal((await get(id)).reservations[0].status, 'active');
+  await age(id, 31);                                 // lapsed, not yet released (no other order since)
+  stock = await rpc(db, 'warehouse', 'get_sku_stock', { p_sku_id: sku.id });
+  assert.equal(stock.reservations.length, 0, 'the product page no longer lists it');
+  assert.equal((await get(id)).reservations[0].status, 'lapsed', 'the order says the hold lapsed');
+});
+
+await test('An admin can set the hold from 5 minutes to 24 hours; it applies to orders already waiting', async () => {
+  assert.equal((await rpc(db, 'packer', 'get_app_settings')).unpaid_hold_minutes, 30, 'every staff member can read it');
+  await freshItem();
+  await batch('2028-03-31', 2);
+  const id = await order(2, { status: 'pending' });
+  await age(id, 45);
+  assert.equal(await atp(), 2, 'lapsed at 30 minutes');
+  await rpc(db, 'admin', 'set_app_setting', { p_key: 'unpaid_hold_minutes', p_value: 60 });
+  assert.equal(await atp(), 0, 'held again with a 60-minute hold');
+  for (const bad of [4, 1441, 7.5, '"30"', true]) {   // '"30"' is the JSON string "30"
+    await assert.rejects(rpc(db, 'admin', 'set_app_setting', { p_key: 'unpaid_hold_minutes', p_value: bad }), /whole number of minutes from 5 to 1440/);
+  }
+  await assert.rejects(rpc(db, 'packer', 'set_app_setting', { p_key: 'unpaid_hold_minutes', p_value: 10 }), /not allowed/);
+  await assert.rejects(rpc(db, 'admin', 'set_app_setting', { p_key: 'something_else', p_value: 1 }), /app_settings_key_check/);
+  await rpc(db, 'admin', 'set_app_setting', { p_key: 'unpaid_hold_minutes', p_value: 30 });
+  assert.equal(await atp(), 2);
+});
+
 await test('The hold functions are internal: staff and the public key cannot call them', async () => {
   for (const user of ['admin', 'anon']) {
     await assert.rejects(rpc(db, user, 'release_expired_unpaid_holds'), /permission denied/);
