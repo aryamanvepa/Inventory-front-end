@@ -157,6 +157,22 @@ await test('A late payment confirms the order and reserves again; if the stock h
   assert.deepEqual([o.status, o.payment_status, o.stock_shortfall], ['confirmed', 'paid', true], 'paid, waiting for stock');
 });
 
+await test('A late payment does not keep a run-out hold on stock that was moved away meanwhile', async () => {
+  await freshItem();
+  await batch('2028-01-31', 2);
+  const late = await order(1, { status: 'pending' });
+  assert.equal(Number((await one(`select count(*) c from stock_reservations where order_id = $1 and status = 'active'`, [late])).c), 1, 'held at first');
+  await age(late, 45);
+  await emptyShelf();                    // no other order reserved, so the run-out hold is still marked active
+  assert.equal(Number((await one(`select count(*) c from stock_reservations where order_id = $1 and status = 'active'`, [late])).c), 1);
+  await rpc(db, 'service', 'ingest_payment', { p_source: 'woocommerce', p_event_id: 'late-pay-3', p_external_order_id: (await get(late)).external_order_id,
+    p_payment: { amount: Number((await get(late)).total_amount), method: 'upi', gateway: 'razorpay', gateway_ref: 'pay_late_3' } });
+  const o = await get(late);
+  assert.deepEqual([o.status, o.payment_status, o.stock_shortfall], ['confirmed', 'paid', true], 'paid, waiting for stock — not falsely ready to pack');
+  assert.equal(Number((await one(`select count(*) c from stock_reservations where order_id = $1 and status = 'active'`, [late])).c), 0, 'old hold released');
+  assert.equal(await atp(), 0);
+});
+
 await test('Cash-on-delivery orders keep their stock however long they wait', async () => {
   await freshItem();
   await batch('2028-01-31', 2);

@@ -15,6 +15,8 @@
 --    released the next time any order reserves stock. If the payment
 --    arrives later, the order is confirmed and tries to reserve again; if
 --    the stock has gone it waits for stock like any other short order.
+--    (A payment first closes the order's run-out hold, so it never keeps
+--    a hold on stock that was free for others in the meantime.)
 --    Cash-on-delivery orders are confirmed at once and are not affected.
 -- =====================================================================
 
@@ -95,6 +97,10 @@ create or replace function refresh_payment_status(p_order_id uuid)
 returns void language plpgsql security definer set search_path = public as $$
 declare v_paid numeric; v_refunded numeric; v_total numeric; v_cod boolean; v_was_pending boolean;
 begin
+  -- Close holds that ran out BEFORE this order can turn 'confirmed'. Otherwise a late
+  -- payment would keep an old hold on stock that was free for others meanwhile (moved,
+  -- adjusted or counted away), and the order would look ready to pack when it isn't.
+  perform release_expired_unpaid_holds();
   select coalesce(sum(amount) filter (where kind = 'payment'), 0),
          coalesce(sum(amount) filter (where kind = 'refund'), 0)
     into v_paid, v_refunded from payments where order_id = p_order_id;
