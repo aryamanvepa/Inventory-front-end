@@ -213,6 +213,18 @@ await test('An admin can set the hold from 5 minutes to 24 hours; it applies to 
   assert.equal(await atp(), 2);
 });
 
+await test('A hold written as 30.0 is saved as 30 and never breaks stock checks', async () => {
+  await rpc(db, 'admin', 'set_app_setting', { p_key: 'unpaid_hold_minutes', p_value: '45.0' });   // JSON number 45.0
+  assert.equal((await one(`select value::text v from app_settings where key = 'unpaid_hold_minutes'`)).v, '45', 'stored as a plain whole number');
+  assert.equal(Number((await one(`select unpaid_hold_minutes() m`)).m), 45);
+  // even if 30.0 gets into the table some other way, reading it still works
+  await db.query(`update app_settings set value = '30.0'::jsonb where key = 'unpaid_hold_minutes'`);
+  assert.equal(Number((await one(`select unpaid_hold_minutes() m`)).m), 30);
+  await atp();                                                   // stock check still runs
+  assert.ok(Array.isArray(await rpc(db, 'anon', 'storefront_catalogue')), 'shop catalogue still loads');
+  await db.query(`update app_settings set value = '30'::jsonb where key = 'unpaid_hold_minutes'`);
+});
+
 await test('The hold functions are internal: staff and the public key cannot call them', async () => {
   for (const user of ['admin', 'anon']) {
     await assert.rejects(rpc(db, user, 'release_expired_unpaid_holds'), /permission denied/);

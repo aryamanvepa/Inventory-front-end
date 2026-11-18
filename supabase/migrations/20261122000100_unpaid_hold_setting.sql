@@ -15,7 +15,9 @@ insert into app_settings (key, value) values ('unpaid_hold_minutes', '30'::jsonb
 
 create or replace function unpaid_hold_minutes()
 returns int language sql stable security definer set search_path = public as $$
-  select coalesce((select (value #>> '{}')::int from app_settings where key = 'unpaid_hold_minutes'), 30)
+  -- read through numeric so a stored 30.0 can't break every stock check; anything odd falls back to 30
+  select coalesce((select case when jsonb_typeof(value) = 'number' then round((value #>> '{}')::numeric)::int end
+                     from app_settings where key = 'unpaid_hold_minutes'), 30)
 $$;
 
 create or replace function set_app_setting(p_key text, p_value jsonb)
@@ -27,6 +29,9 @@ begin
        and (p_value #>> '{}')::numeric = trunc((p_value #>> '{}')::numeric)
        and (p_value #>> '{}')::numeric between 5 and 1440) then
     raise exception 'The payment hold is a whole number of minutes from 5 to 1440 (24 hours)';
+  end if;
+  if p_key = 'unpaid_hold_minutes' then
+    p_value := to_jsonb(((p_value #>> '{}')::numeric)::int);   -- store 30.0 as 30
   end if;
   insert into app_settings (key, value, updated_at, updated_by) values (p_key, p_value, now(), v_uid)
   on conflict (key) do update set value = excluded.value, updated_at = now(), updated_by = v_uid;
