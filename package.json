@@ -11,7 +11,7 @@
     "test:db": "node tests/acceptance.test.mjs",
     "test:webhook": "node --experimental-strip-types tests/webhook-mapper.test.mjs",
     "test:storefront": "node --experimental-strip-types tests/storefront.test.mjs",
-    "test": "npm run test:db && npm run test:webhook && npm run test:storefront && npm run test:finance && npm run test:upgrade && npm run test:inventory && npm run test:catalogue && npm run test:notify && npm run test:settings && npm run test:inspector && npm run test:storefront2 && npm run test:overrides && npm run test:status && npm run test:fefo",
+    "test": "npm run test:db && npm run test:webhook && npm run test:storefront && npm run test:finance && npm run test:upgrade && npm run test:inventory && npm run test:catalogue && npm run test:notify && npm run test:settings && npm run test:inspector && npm run test:storefront2 && npm run test:overrides && npm run test:status && npm run test:fefo && npm run test:shelf",
     "test:finance": "node tests/finance.test.mjs",
     "test:upgrade": "node tests/upgrade-path.test.mjs",
     "test:inventory": "node tests/inventory.test.mjs",
@@ -22,7 +22,8 @@
     "test:storefront2": "node --experimental-strip-types tests/storefront-backend.test.mjs",
     "test:overrides": "node tests/test-overrides.test.mjs",
     "test:status": "node --experimental-strip-types tests/catalogue-status.test.mjs",
-    "test:fefo": "node tests/fefo-hold.test.mjs"
+    "test:fefo": "node tests/fefo-hold.test.mjs",
+    "test:shelf": "node tests/shelf-life.test.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",

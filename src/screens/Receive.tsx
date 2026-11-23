@@ -7,7 +7,7 @@ import { Card, date, Field, Loading, Page, Segmented, ymd } from '../components/
 type Step = 'product' | 'batch' | 'qty' | 'done';
 
 export function Receive() {
-  const { backend, toast, go } = useApp();
+  const { backend, toast, go, settings } = useApp();
   const ref = useRpc<any>('get_reference_data');
   const skus = useRpc<any[]>('list_skus');
   const { run, busy } = useAction();
@@ -111,7 +111,7 @@ export function Receive() {
               </Field>
               {maker && <Field label="Manufacturer's lot number"><input value={lot} onChange={(e) => setLot(e.target.value)} /></Field>}
               <Field label="Manufacture date"><input type="date" value={mfg} onChange={(e) => setMfg(e.target.value)} /></Field>
-              <Field label="Expiry date" hint={sku.shelf_life_days ? `Leave blank to use shelf life (${sku.shelf_life_days} days)` : 'Required'}>
+              <Field label="Expiry date" hint={sku.shelf_life_days ? `Leave blank to use shelf life (${sku.shelf_life_days} days)` : `Leave blank to use the default shelf life (${settings.default_shelf_life_days ?? 90} days)`}>
                 <input type="date" value={exp} onChange={(e) => setExp(e.target.value)} />
               </Field>
               <Field label="Cost per unit ₹ (optional, for margin reports)"><input inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value.replace(/[^\d.]/g, ''))} /></Field>

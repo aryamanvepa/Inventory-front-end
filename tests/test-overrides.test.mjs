@@ -40,8 +40,8 @@ await test('Setup: a product with no recipe and no shelf life, and a website ord
   assert.equal(r.ok, true, r.error);
   orderId = r.order_id;
   assert.equal(r.stock_reserved, false);
-  // the normal route is blocked: no shelf life means "From kitchen" isn't offered, and materials need a purchase order
-  assert.equal((await rpc(db, 'warehouse', 'inv_item', { p_sku_id: PROD })).kitchen.can_make, false);
+  // "From kitchen" is offered even without a shelf life (the default is used); materials still need a purchase order
+  assert.equal((await rpc(db, 'warehouse', 'inv_item', { p_sku_id: PROD })).kitchen.can_make, true);
   await rejects(rpc(db, 'warehouse', 'inv_stock_in', { p: { sku_id: MAT, qty: 5, source: 'kitchen' } }), /purchase order/);
 });
 

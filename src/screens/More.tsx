@@ -28,6 +28,7 @@ export function More() {
       </ul>
       {can('manager') && <TestingTools />}
       {can('manager') && <PaymentHold />}
+      {can('manager') && <DefaultShelfLife />}
       <div className="card">
         <div><strong>{profile.full_name}</strong></div>
         <div className="muted small">Role: {profile.role}{backend.mode === 'demo' ? ' · demo mode' : ''}</div>
@@ -90,6 +91,40 @@ function PaymentHold() {
           <label className="small" htmlFor="hold-mins">Minutes (5–1440)</label>
           <input id="hold-mins" type="number" inputMode="numeric" min={5} max={1440} step={1} value={mins}
             onChange={(e) => setMins(e.target.value)} style={{ width: '7em' }} />
+          <button type="submit" className="btn" disabled={busy || !changed}>{busy ? 'Saving…' : 'Save'}</button>
+        </form>
+      ) : <span className="muted small">Only an admin can change it.</span>}
+    </div>
+  );
+}
+
+// Expiry used when a product has no shelf life and no expiry date is typed (admin only)
+function DefaultShelfLife() {
+  const { settings, reloadSettings, can, backend, toast } = useApp();
+  const current = Number(settings.default_shelf_life_days ?? 90);
+  const [days, setDays] = useState(String(current));
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { setDays(String(current)); }, [current]);   // settings load after the screen
+  const changed = days.trim() !== String(current);
+  return (
+    <div className="card">
+      <strong>Default shelf life</strong>
+      <span className="small">When a product has no shelf life and nobody types an expiry date, new stock expires
+        <strong> {current} days</strong> after it is made or received. A product's own shelf life always wins.</span>
+      {can('admin') ? (
+        <form className="row-gap" onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          try {
+            await backend.rpc('set_app_setting', { p_key: 'default_shelf_life_days', p_value: Number(days) });
+            await reloadSettings();
+            toast(`Default shelf life set to ${Number(days)} days`);
+          } catch (err) { toast(err instanceof Error ? err.message : String(err), 'error'); }
+          finally { setBusy(false); }
+        }}>
+          <label className="small" htmlFor="shelf-days">Days (1–3650)</label>
+          <input id="shelf-days" type="number" inputMode="numeric" min={1} max={3650} step={1} value={days}
+            onChange={(e) => setDays(e.target.value)} style={{ width: '7em' }} />
           <button type="submit" className="btn" disabled={busy || !changed}>{busy ? 'Saving…' : 'Save'}</button>
         </form>
       ) : <span className="muted small">Only an admin can change it.</span>}
